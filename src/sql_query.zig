@@ -39,20 +39,17 @@ pub const requests = struct {
     }
 
     pub fn fetchOrdered(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, options: models.FetchOptions) ![]models.Request {
-        const query_fmt =
+        const query =
             \\SELECT id, bin, method, remote_addr, headers, query, body, time FROM requests
             \\WHERE bin = ?
             \\ORDER BY time
-            \\LIMIT {d} OFFSET {d}
+            \\LIMIT $limit OFFSET $offset
         ;
 
-        const query = try std.fmt.allocPrint(allocator, query_fmt, .{ options.limit, options.offset });
-        defer allocator.free(query);
-
-        var stmt = try db.prepareDynamic(query);
+        var stmt = try db.prepare(query);
         defer stmt.deinit();
 
-        return stmt.all(models.Request, allocator, .{}, .{ .bin = bin });
+        return stmt.all(models.Request, allocator, .{}, .{ .bin = bin, .limit = options.limit, .offset = options.offset });
     }
 };
 
