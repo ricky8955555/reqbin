@@ -1,0 +1,289 @@
+const std = @import("std");
+const Allocator = std.mem.Allocator;
+const JsonValue = std.json.Value;
+
+const zdt = @import("zdt");
+const httpz = @import("httpz");
+
+pub const Config = struct {
+    max_body_size: ?usize = null,
+    max_query_count: ?usize = null,
+    max_header_count: ?usize = null,
+    max_form_count: ?usize = null,
+
+    database: []const u8 = "data.db",
+
+    address: []const u8 = "127.0.0.1",
+    port: u16 = 7280,
+
+    auth: ?[]const u8 = null,
+
+    pub fn parseFromEnvMap(envs: std.process.EnvMap) !Config {
+        var config = Config{};
+
+        if (envs.get("REQBIN_MAX_BODY_SIZE")) |max_body_size| {
+            config.max_body_size = try std.fmt.parseInt(usize, max_body_size, 10);
+        }
+        if (envs.get("REQBIN_MAX_QUERY_COUNT")) |max_query_count| {
+            config.max_query_count = try std.fmt.parseInt(usize, max_query_count, 10);
+        }
+        if (envs.get("REQBIN_MAX_HEADER_COUNT")) |max_header_count| {
+            config.max_header_count = try std.fmt.parseInt(usize, max_header_count, 10);
+        }
+        if (envs.get("REQBIN_MAX_FORM_COUNT")) |max_form_count| {
+            config.max_form_count = try std.fmt.parseInt(usize, max_form_count, 10);
+        }
+        if (envs.get("REQBIN_DATABASE")) |database| {
+            config.database = database;
+        }
+        if (envs.get("REQBIN_ADDRESS")) |address| {
+            config.address = address;
+        }
+        if (envs.get("REQBIN_PORT")) |port| {
+            config.port = try std.fmt.parseInt(u16, port, 10);
+        }
+        if (envs.get("REQBIN_AUTH")) |auth| {
+            config.auth = auth;
+        }
+
+        return config;
+    }
+};
+
+pub const Timestamp = struct {
+    value: zdt.Datetime,
+
+    pub const BaseType = i64;
+
+    pub fn serialize(self: Timestamp) !BaseType {
+        const converted = try self.value.tzConvert(.{ .tz = &zdt.Timezone.UTC });
+        return @intCast(converted.toUnix(.second));
+    }
+
+    pub fn deserialize(value: BaseType) !Timestamp {
+        const parsed = try zdt.Datetime.fromUnix(@as(i128, value), .second, .{ .tz = &zdt.Timezone.UTC });
+        return .{ .value = parsed };
+    }
+
+    pub fn bindField(self: Timestamp, _: Allocator) !BaseType {
+        return self.serialize();
+    }
+
+    pub fn readField(_: Allocator, value: BaseType) !Timestamp {
+        return deserialize(value);
+    }
+
+    pub fn jsonStringify(self: Timestamp, jws: anytype) !void {
+        const value = self.serialize() catch return error.WriteFailed;
+        try jws.write(value);
+    }
+
+    pub fn jsonParse(allocator: Allocator, source: anytype, options: std.json.ParseOptions) std.json.ParseError(@TypeOf(source.*))!Timestamp {
+        const value = std.json.innerParse(i64, allocator, source, options);
+        return deserialize(value);
+    }
+};
+
+pub const StringKeyValue = struct {
+    map: httpz.key_value.StringKeyValue,
+
+    pub const BaseType = []const u8;
+
+    pub fn bindField(self: StringKeyValue, allocator: Allocator) !BaseType {
+        var out = std.Io.Writer.Allocating.init(allocator);
+        defer out.deinit();
+
+        var stringify = std.json.Stringify{ .writer = &out.writer };
+        try stringify.write(self);
+
+        return out.toOwnedSlice();
+    }
+
+    pub fn readField(allocator: Allocator, value: BaseType) !StringKeyValue {
+        const parsed = try std.json.parseFromSlice(StringKeyValue, allocator, value, .{ .allocate = .alloc_always });
+        return parsed.value;
+    }
+
+    pub fn jsonStringify(self: StringKeyValue, jws: anytype) !void {
+        try jws.beginObject();
+        var it = self.map.iterator();
+        while (it.next()) |kv| {
+            try jws.objectField(kv.key);
+            try jws.write(kv.value);
+        }
+        try jws.endObject();
+    }
+
+    pub fn jsonParse(allocator: Allocator, source: anytype, options: std.json.ParseOptions) std.json.ParseError(@TypeOf(source.*))!StringKeyValue {
+        if (.object_begin != try source.next()) return error.UnexpectedToken;
+
+        var kvs = try std.ArrayList(struct { key: []const u8, value: []const u8 }).initCapacity(allocator, 32);
+        defer kvs.deinit(allocator);
+
+        while (true) {
+            const key_token = try source.nextAlloc(allocator, options.allocate.?);
+            switch (key_token) {
+                inline .string, .allocated_string => |key| {
+                    const value_token = try source.nextAlloc(allocator, options.allocate.?);
+                    switch (value_token) {
+                        inline .string, .allocated_string => |value| {
+                            try kvs.append(allocator, .{ .key = key, .value = value });
+                        },
+                        else => return error.UnexpectedToken,
+                    }
+                },
+                .object_end => break,
+                else => unreachable,
+            }
+        }
+
+        var map = try httpz.key_value.StringKeyValue.init(allocator, kvs.items.len);
+        errdefer map.deinit(allocator);
+
+        for (kvs.items) |item| {
+            map.add(item.key, item.value);
+        }
+
+        return .{ .map = map };
+    }
+
+    pub fn deinit(self: StringKeyValue, allocator: Allocator) void {
+        self.map.deinit(allocator);
+    }
+};
+
+pub const Body = struct {
+    const InnerBody = union(enum) {
+        raw: []const u8,
+        form: StringKeyValue,
+        json: JsonValue,
+    };
+
+    value: InnerBody,
+
+    pub const BaseType = []const u8;
+
+    pub fn bindField(self: Body, allocator: Allocator) !BaseType {
+        var out = std.Io.Writer.Allocating.init(allocator);
+        defer out.deinit();
+
+        var stringify = std.json.Stringify{ .writer = &out.writer };
+        try stringify.write(self);
+
+        return out.toOwnedSlice();
+    }
+
+    pub fn readField(allocator: Allocator, value: BaseType) !Body {
+        const parsed = try std.json.parseFromSlice(Body, allocator, value, .{ .allocate = .alloc_always });
+        return parsed.value;
+    }
+
+    pub fn jsonStringify(self: Body, jws: anytype) !void {
+        try jws.write(self.value);
+    }
+
+    pub fn jsonParse(allocator: Allocator, source: anytype, options: std.json.ParseOptions) std.json.ParseError(@TypeOf(source.*))!Body {
+        const parsed = try std.json.innerParse(InnerBody, allocator, source, options);
+        return .{ .value = parsed };
+    }
+
+    pub fn parseFromRequest(request: *httpz.Request) !?Body {
+        const optional_content_type = request.header("content-type");
+
+        if (optional_content_type) |content_type| {
+            if (std.mem.eql(u8, content_type, "application/json")) {
+                const json = try request.jsonValue() orelse return null;
+                return .{ .value = .{ .json = json } };
+            }
+
+            if (std.mem.eql(u8, content_type, "application/x-www-form-urlencoded")) {
+                const form = try request.formData();
+                return .{ .value = .{ .form = .{ .map = form.* } } };
+            }
+        }
+
+        const body = request.body() orelse return null;
+        return .{ .value = .{ .raw = body } };
+    }
+};
+
+pub const Request = struct {
+    id: ?i64 = null,
+
+    bin: i64,
+
+    method: []const u8,
+    remote_addr: []const u8,
+
+    headers: ?StringKeyValue,
+
+    query: ?StringKeyValue,
+    body: ?Body,
+
+    time: Timestamp,
+};
+
+pub const FetchOptions = struct {
+    limit: u64 = 20,
+    offset: u64 = 0,
+
+    pub fn parseFromStringKeyValue(kv: *httpz.key_value.StringKeyValue) !FetchOptions {
+        var options = FetchOptions{};
+
+        if (kv.get("limit")) |limit| {
+            options.limit = try std.fmt.parseInt(u64, limit, 10);
+        }
+        if (kv.get("offset")) |offset| {
+            options.offset = try std.fmt.parseInt(u64, offset, 10);
+        }
+
+        return options;
+    }
+};
+
+pub fn Array(comptime T: type) type {
+    return struct {
+        value: []T,
+
+        const Self = @This();
+
+        pub const BaseType = []const u8;
+
+        pub fn bindField(self: Self, allocator: Allocator) !BaseType {
+            var out = std.Io.Writer.Allocating.init(allocator);
+            defer out.deinit();
+
+            var stringify = std.json.Stringify{ .writer = &out.writer };
+            try stringify.write(self);
+
+            return out.toOwnedSlice();
+        }
+
+        pub fn readField(allocator: Allocator, value: BaseType) !Self {
+            const parsed = try std.json.parseFromSlice(Self, allocator, value, .{ .allocate = .alloc_always });
+            return parsed.value;
+        }
+
+        pub fn jsonStringify(self: Self, jws: anytype) !void {
+            try jws.write(self.value);
+        }
+
+        pub fn jsonParse(allocator: Allocator, source: anytype, options: std.json.ParseOptions) std.json.ParseError(@TypeOf(source.*))!Self {
+            const value = try std.json.innerParse([]T, allocator, source, options);
+            return .{ .value = value };
+        }
+    };
+}
+
+pub const Bin = struct {
+    id: ?i64 = null,
+
+    name: []const u8,
+
+    body: bool = true,
+    query: bool = true,
+    headers: bool = true,
+
+    ips: ?Array([]const u8) = null,
+    methods: ?Array([]const u8) = null,
+};

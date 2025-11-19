@@ -1,0 +1,10 @@
+# Zig
+.zig-cache/
+zig-out/
+*.o
+
+# User database
+data.db
+
+# Dockerfile
+Dockerfile
