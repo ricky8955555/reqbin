@@ -275,6 +275,40 @@ pub fn Array(comptime T: type) type {
     };
 }
 
+fn Validate(comptime BaseType: type, comptime validate: *const fn (value: *const BaseType) bool) type {
+    return struct {
+        value: BaseType,
+
+        const Self = @This();
+
+        pub fn bindField(self: Self, _: Allocator) !BaseType {
+            return self.value;
+        }
+
+        pub fn readField(_: Allocator, value: BaseType) !Self {
+            if (!validate(&value)) return error.Validation;
+            return .{ .value = value };
+        }
+
+        pub fn jsonStringify(self: Self, jws: anytype) !void {
+            try jws.write(self.value);
+        }
+
+        pub fn jsonParse(allocator: Allocator, source: anytype, options: std.json.ParseOptions) std.json.ParseError(@TypeOf(source.*))!Self {
+            const value = try std.json.innerParse(BaseType, allocator, source, options);
+            if (!validate(&value)) return error.InvalidCharacter;
+            return .{ .value = value };
+        }
+    };
+}
+
+pub const IpString = Validate([]const u8, struct {
+    fn validate(value: *const []const u8) bool {
+        _ = std.net.Address.resolveIp(value.*, 0) catch return false;
+        return true;
+    }
+}.validate);
+
 pub const Bin = struct {
     id: ?i64 = null,
 
@@ -284,6 +318,6 @@ pub const Bin = struct {
     query: bool = true,
     headers: bool = true,
 
-    ips: ?Array([]const u8) = null,
-    methods: ?Array([]const u8) = null,
+    ips: ?Array(IpString) = null,
+    methods: ?Array(httpz.Method) = null,
 };

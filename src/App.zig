@@ -68,9 +68,9 @@ fn catchRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void 
     if (bin.ips) |ips| {
         for (ips.value) |ip| {
             const pos = std.mem.lastIndexOfScalar(u8, address, ':').?;
-            const got_ip = address[0..pos];
+            const remote_ip = address[0..pos];
 
-            if (std.mem.eql(u8, ip, got_ip)) {
+            if (std.mem.eql(u8, ip.value, remote_ip)) {
                 break;
             }
         } else {
@@ -79,14 +79,9 @@ fn catchRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void 
         }
     }
 
-    const method = switch (req.method) {
-        .OTHER => req.method_string,
-        else => @tagName(req.method),
-    };
-
     if (bin.methods) |methods| {
-        for (methods.value) |expected_method| {
-            if (std.mem.eql(u8, expected_method, method)) {
+        for (methods.value) |method| {
+            if (method == req.method) {
                 break;
             }
         } else {
@@ -101,7 +96,7 @@ fn catchRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void 
 
     var model = models.Request{
         .bin = bin.id.?,
-        .method = method,
+        .method = @tagName(req.method),
         .remote_addr = address,
         .headers = headers,
         .query = query,
