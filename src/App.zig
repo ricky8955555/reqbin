@@ -6,11 +6,16 @@ const zdt = @import("zdt");
 
 const models = @import("models.zig");
 const sql_query = @import("sql_query.zig");
+const http_utils = @import("utils/http.zig");
+const net_utils = @import("utils/net.zig");
 
 pub const Context = struct {
     allocator: std.mem.Allocator,
     db: *sqlite.Db,
+
     auth: ?[]const u8 = null,
+
+    trusted_proxies: []const net_utils.Network,
 };
 
 server: httpz.Server(*Context),
@@ -98,10 +103,17 @@ fn catchRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void 
         break :body body;
     } else null;
 
+    const remote_addr = http_utils.retrieveRemoteAddr(req, ctx.trusted_proxies);
+
+    const remote_addr_str = remote_addr: {
+        var buf: [64]u8 = undefined;
+        break :remote_addr std.fmt.bufPrint(&buf, "{f}", .{remote_addr}) catch unreachable;
+    };
+
     var model = models.Request{
         .bin = bin.id.?,
         .method = @tagName(req.method),
-        .remote_addr = address,
+        .remote_addr = remote_addr_str,
         .headers = headers,
         .query = query,
         .body = body,

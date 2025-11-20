@@ -17,36 +17,46 @@ const Config = struct {
     port: u16 = 7280,
 
     auth: ?[]const u8 = null,
+    trusted_proxies: ?[]const u8 = null,
 
     pub fn parseFromEnvMap(envs: std.process.EnvMap) !Config {
         var config = Config{};
 
-        if (envs.get("REQBIN_MAX_BODY_SIZE")) |max_body_size| {
-            config.max_body_size = try std.fmt.parseInt(usize, max_body_size, 10);
-        }
-        if (envs.get("REQBIN_MAX_QUERY_COUNT")) |max_query_count| {
-            config.max_query_count = try std.fmt.parseInt(usize, max_query_count, 10);
-        }
-        if (envs.get("REQBIN_MAX_HEADER_COUNT")) |max_header_count| {
-            config.max_header_count = try std.fmt.parseInt(usize, max_header_count, 10);
-        }
-        if (envs.get("REQBIN_MAX_FORM_COUNT")) |max_form_count| {
-            config.max_form_count = try std.fmt.parseInt(usize, max_form_count, 10);
-        }
-        if (envs.get("REQBIN_DATABASE")) |database| {
-            config.database = database;
-        }
-        if (envs.get("REQBIN_ADDRESS")) |address| {
-            config.address = address;
-        }
-        if (envs.get("REQBIN_PORT")) |port| {
-            config.port = try std.fmt.parseInt(u16, port, 10);
-        }
-        if (envs.get("REQBIN_AUTH")) |auth| {
-            config.auth = auth;
+        inline for (@typeInfo(Config).@"struct".fields) |field| {
+            const env_name = comptime makeEnvName(field.name);
+            if (envs.get(env_name)) |value| {
+                try parseField(&config, field.name, field.type, value);
+            }
         }
 
         return config;
+    }
+
+    fn makeEnvName(comptime field_name: []const u8) []const u8 {
+        comptime {
+            var upper_name: [field_name.len]u8 = undefined;
+            for (field_name, 0..) |c, i| {
+                upper_name[i] = std.ascii.toUpper(c);
+            }
+            return "REQBIN_" ++ upper_name;
+        }
+    }
+
+    fn parseField(config: *Config, comptime field_name: []const u8, comptime FieldType: type, value: []const u8) !void {
+        const field_ptr = &@field(config, field_name);
+
+        switch (@typeInfo(FieldType)) {
+            .optional => |optional| try parseField(config, field_name, optional.child, value),
+            .int => field_ptr.* = try std.fmt.parseInt(FieldType, value, 10),
+            .pointer => |ptr| {
+                if (ptr.size == .slice and ptr.child == u8) {
+                    field_ptr.* = value;
+                } else {
+                    @compileError("Unsupported pointer type for field: " ++ field_name);
+                }
+            },
+            else => @compileError("Unsupported field type: " ++ @typeName(FieldType)),
+        }
     }
 };
 
@@ -73,6 +83,23 @@ pub fn main() !void {
 
     const config = try Config.parseFromEnvMap(envs);
 
+    const trusted_proxies = trusted_proxies: {
+        if (config.trusted_proxies) |trusted_proxies_str| {
+            var trusted_proxies = try std.ArrayList(reqbin.net.Network).initCapacity(allocator, 16);
+            defer trusted_proxies.deinit(allocator);
+
+            var proxy_iter = std.mem.splitScalar(u8, trusted_proxies_str, ',');
+            while (proxy_iter.next()) |proxy| {
+                const network = try reqbin.net.Network.parse(proxy);
+                try trusted_proxies.append(allocator, network);
+            }
+
+            break :trusted_proxies try trusted_proxies.toOwnedSlice(allocator);
+        } else {
+            break :trusted_proxies &.{};
+        }
+    };
+
     const database = try allocator.dupeZ(u8, config.database);
     defer allocator.free(database);
 
@@ -87,6 +114,7 @@ pub fn main() !void {
         .allocator = allocator,
         .db = &db,
         .auth = config.auth,
+        .trusted_proxies = trusted_proxies,
     };
 
     var app = try reqbin.App.init(&ctx, .{
