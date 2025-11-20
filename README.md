@@ -13,7 +13,9 @@ Then access the application via http://localhost:7280.
 
 ## API Reference
 
-### Bin Management
+### Endpoints
+
+#### Bin Management
 
 **Following API is authentication needed if configured.**
 
@@ -23,9 +25,47 @@ Then access the application via http://localhost:7280.
 - `DELETE /bins/:bin`: Remove a bin and all the data it captures.
 - `GET /view/:bin`: Fetch all captured data of a bin. (Limit and offset can be specified via params `limit` and `offset`, with default values `20` and `0`)
 
-### Capture
+#### Capture
 
 - `ANY /access/:bin`: Any request to this route will be captured into specific bin, then the captured data will be returned to the client.
+
+### Models
+
+#### Bin
+
+```jsonc
+{
+    "id": 1,                // ID of the bin in database
+    "name": "foo",          // Bin's name
+    "body": true,           // Collect requests' body or not
+    "query": true,          // Collect requests' query or not
+    "headers": false,       // Collect requests' headers or not
+    "ips": [                // Restrict source ip if set, otherwise, the source will not be checked.
+        "127.0.0.1"
+    ],
+    "methods": [            // Restrict requests' methods
+        "POST"              // Possible values: GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, OTHER
+    ],
+    "content_type": null    // Specify content type if set, otherwise, the content type will be detected via requests' header (Possible values: raw, json, form) (Note: multipart form is not supported)
+},
+```
+
+#### Request
+
+```jsonc
+{
+    "id": 1,                            // ID of the request in database
+    "bin": 1,                           // Bin ID the request belongs to
+    "method": "POST",                   // Request method
+    "remote_addr": "127.0.0.1:23333",   // Client address
+    "headers": null,                    // Headers (always null if disabled)
+    "query": {},                        // Query params (always null if disabled)
+    "body": {                           // Body (null if the function is disabled or the request has no body)
+        "raw": "foobar"                 // Body content (Key could be raw/json/form, determined by bin's (if specified) or request's content type)
+    },
+    "time": 1301965440                  // UTC unix timestamp of the request
+}
+```
 
 ## Configuration
 
