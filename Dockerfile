@@ -20,8 +20,8 @@ WORKDIR /app
 
 COPY --from=build /build/zig-out/bin/reqbin .
 COPY db ./db
-COPY docker-entrypoint.sh .
+COPY docker-entrypoint.sh /
 
 ENV REQBIN_ADDRESS="0.0.0.0"
 
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
