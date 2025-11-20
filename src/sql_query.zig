@@ -5,26 +5,6 @@ const sqlite = @import("sqlite");
 const models = @import("models.zig");
 
 pub const requests = struct {
-    pub fn initTable(db: *sqlite.Db) !void {
-        const query =
-            \\CREATE TABLE IF NOT EXISTS requests(
-            \\  id INTEGER PRIMARY KEY,
-            \\  bin INTEGER NOT NULL,
-            \\  method TEXT NOT NULL,
-            \\  remote_addr TEXT NOT NULL,
-            \\  headers TEXT,
-            \\  query TEXT,
-            \\  body TEXT,
-            \\  time INTEGER NOT NULL,
-            \\  FOREIGN KEY(bin) REFERENCES bins(id) ON DELETE CASCADE
-            \\);
-            \\
-            \\CREATE INDEX IF NOT EXISTS idx_requests_bin ON requests(bin);
-        ;
-
-        try db.execMulti(query, .{});
-    }
-
     pub fn add(db: *sqlite.Db, allocator: std.mem.Allocator, model: *models.Request) !void {
         const query =
             \\INSERT INTO requests(id, bin, method, remote_addr, headers, query, body, time) VALUES(?, ?, ?, ?, ?, ?, ?, ?)
@@ -54,25 +34,6 @@ pub const requests = struct {
 };
 
 pub const bins = struct {
-    pub fn initTable(db: *sqlite.Db) !void {
-        const query =
-            \\CREATE TABLE IF NOT EXISTS bins(
-            \\  id INTEGER PRIMARY KEY,
-            \\  name TEXT NOT NULL,
-            \\  body INTEGER NOT NULL,
-            \\  query INTEGER NOT NULL,
-            \\  header INTEGER NOT NULL,
-            \\  ips TEXT,
-            \\  methods TEXT,
-            \\  content_type INTEGER
-            \\);
-            \\
-            \\CREATE UNIQUE INDEX IF NOT EXISTS idx_bins_name ON bins(name);
-        ;
-
-        try db.execMulti(query, .{});
-    }
-
     pub fn addOrUpdate(db: *sqlite.Db, allocator: std.mem.Allocator, model: *models.Bin) !void {
         const query =
             \\INSERT OR REPLACE INTO

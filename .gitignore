@@ -5,3 +5,6 @@ zig-out/
 
 # User database
 data.db
+
+# Database schema
+db/schema.sql

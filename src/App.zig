@@ -29,9 +29,6 @@ pub fn init(ctx: *Context, config: httpz.Config) !App {
     router.get("/bins/:bin", inspectBin, .{});
     router.delete("/bins/:bin", deleteBin, .{});
 
-    try sql_query.bins.initTable(ctx.db);
-    try sql_query.requests.initTable(ctx.db);
-
     return app;
 }
 
