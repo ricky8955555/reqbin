@@ -31,6 +31,17 @@ pub const requests = struct {
 
         return stmt.all(models.Request, allocator, .{}, .{ .bin = bin, .limit = options.limit, .offset = options.offset });
     }
+
+    pub fn clear(db: *sqlite.Db, bin: i64) !void {
+        const query =
+            \\DELETE FROM requests WHERE bin = ?
+        ;
+
+        var stmt = try db.prepare(query);
+        defer stmt.deinit();
+
+        try stmt.exec(.{}, .{ .bin = bin });
+    }
 };
 
 pub const bins = struct {

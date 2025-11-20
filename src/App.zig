@@ -33,6 +33,7 @@ pub fn init(ctx: *Context, config: httpz.Config) !App {
     router.delete("/:bin", deleteBin, .{});
     router.all("/:bin/access", catchRequest, .{});
     router.get("/:bin/view", viewBin, .{});
+    router.post("/:bin/clear", clearBin, .{});
 
     return app;
 }
@@ -240,4 +241,19 @@ fn deleteBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     const bin_name = req.param("bin").?;
 
     try sql_query.bins.delete(ctx.db, bin_name);
+}
+
+fn clearBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
+    if (!try authorize(ctx, req)) {
+        respondError(res, .unauthorized);
+        return;
+    }
+
+    const bin_name = req.param("bin").?;
+    const bin = try sql_query.bins.getId(ctx.db, bin_name) orelse {
+        respondError(res, .not_found);
+        return;
+    };
+
+    try sql_query.requests.clear(ctx.db, bin);
 }
