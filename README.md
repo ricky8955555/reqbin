@@ -5,6 +5,7 @@ reqbin is a tool to collect requests for inspecting and debugging.
 ## Quick start
 
 ```shell
+touch data.db
 docker build . -t reqbin
 docker run --name reqbin -v $(pwd)/data.db:/app/data.db -p 7280:7280 reqbin:latest
 ```
