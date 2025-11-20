@@ -5,8 +5,7 @@ pub const Ip4Network = struct {
     prefix_len: u8,
 
     pub fn network_mask(self: Ip4Network) u32 {
-        if (self.prefix_len == 32) return std.math.maxInt(u32);
-        return @as(u32, std.math.maxInt(u32)) << ~@as(u5, @intCast(self.prefix_len));
+        return ~self.host_mask();
     }
 
     fn host_mask(self: Ip4Network) u32 {
@@ -49,8 +48,7 @@ pub const Ip6Network = struct {
     prefix_len: u8,
 
     fn network_mask(self: Ip6Network) u128 {
-        if (self.prefix_len == 128) return std.math.maxInt(u128);
-        return @as(u128, std.math.maxInt(u128)) << ~@as(u7, @intCast(self.prefix_len));
+        return ~self.host_mask();
     }
 
     fn host_mask(self: Ip6Network) u128 {
