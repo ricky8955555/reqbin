@@ -20,15 +20,15 @@ Then access the application via http://localhost:7280.
 
 **Following API is authentication needed if configured.**
 
-- `PUT /bins`: Create or update a bin. Bin model should be represented in JSON format.
-- `GET /bins`: Fetch all bins. (Limit and offset can be specified via params `limit` and `offset`, with default values `20` and `0`)
-- `GET /bins/:bin`: Inspect a bin.
-- `DELETE /bins/:bin`: Remove a bin and all the data it captures.
-- `GET /view/:bin`: Fetch all captured data of a bin. (Limit and offset can be specified via params `limit` and `offset`, with default values `20` and `0`)
+- `PUT /`: Create or update a bin. Bin model should be represented in JSON format.
+- `GET /`: Fetch all bins. (Limit and offset can be specified via params `limit` and `offset`, with default values `20` and `0`)
+- `GET /:bin`: Inspect a bin.
+- `DELETE /:bin`: Remove a bin and all the data it captures.
+- `GET /:bin/view`: Fetch all captured data of a bin. (Limit and offset can be specified via params `limit` and `offset`, with default values `20` and `0`)
 
 #### Capture
 
-- `ANY /access/:bin`: Any request to this route will be captured into specific bin, then the captured data will be returned to the client.
+- `ANY /:bin/access`: Any request to this route will be captured into specific bin, then the captured data will be returned to the client.
 
 ### Models
 
