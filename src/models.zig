@@ -5,51 +5,6 @@ const JsonValue = std.json.Value;
 const zdt = @import("zdt");
 const httpz = @import("httpz");
 
-pub const Config = struct {
-    max_body_size: ?usize = null,
-    max_query_count: ?usize = null,
-    max_header_count: ?usize = null,
-    max_form_count: ?usize = null,
-
-    database: []const u8 = "data.db",
-
-    address: []const u8 = "127.0.0.1",
-    port: u16 = 7280,
-
-    auth: ?[]const u8 = null,
-
-    pub fn parseFromEnvMap(envs: std.process.EnvMap) !Config {
-        var config = Config{};
-
-        if (envs.get("REQBIN_MAX_BODY_SIZE")) |max_body_size| {
-            config.max_body_size = try std.fmt.parseInt(usize, max_body_size, 10);
-        }
-        if (envs.get("REQBIN_MAX_QUERY_COUNT")) |max_query_count| {
-            config.max_query_count = try std.fmt.parseInt(usize, max_query_count, 10);
-        }
-        if (envs.get("REQBIN_MAX_HEADER_COUNT")) |max_header_count| {
-            config.max_header_count = try std.fmt.parseInt(usize, max_header_count, 10);
-        }
-        if (envs.get("REQBIN_MAX_FORM_COUNT")) |max_form_count| {
-            config.max_form_count = try std.fmt.parseInt(usize, max_form_count, 10);
-        }
-        if (envs.get("REQBIN_DATABASE")) |database| {
-            config.database = database;
-        }
-        if (envs.get("REQBIN_ADDRESS")) |address| {
-            config.address = address;
-        }
-        if (envs.get("REQBIN_PORT")) |port| {
-            config.port = try std.fmt.parseInt(u16, port, 10);
-        }
-        if (envs.get("REQBIN_AUTH")) |auth| {
-            config.auth = auth;
-        }
-
-        return config;
-    }
-};
-
 pub const Timestamp = struct {
     value: zdt.Datetime,
 

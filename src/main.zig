@@ -5,6 +5,51 @@ const sqlite = @import("sqlite");
 
 const reqbin = @import("reqbin");
 
+const Config = struct {
+    max_body_size: ?usize = null,
+    max_query_count: ?usize = null,
+    max_header_count: ?usize = null,
+    max_form_count: ?usize = null,
+
+    database: []const u8 = "data.db",
+
+    address: []const u8 = "127.0.0.1",
+    port: u16 = 7280,
+
+    auth: ?[]const u8 = null,
+
+    pub fn parseFromEnvMap(envs: std.process.EnvMap) !Config {
+        var config = Config{};
+
+        if (envs.get("REQBIN_MAX_BODY_SIZE")) |max_body_size| {
+            config.max_body_size = try std.fmt.parseInt(usize, max_body_size, 10);
+        }
+        if (envs.get("REQBIN_MAX_QUERY_COUNT")) |max_query_count| {
+            config.max_query_count = try std.fmt.parseInt(usize, max_query_count, 10);
+        }
+        if (envs.get("REQBIN_MAX_HEADER_COUNT")) |max_header_count| {
+            config.max_header_count = try std.fmt.parseInt(usize, max_header_count, 10);
+        }
+        if (envs.get("REQBIN_MAX_FORM_COUNT")) |max_form_count| {
+            config.max_form_count = try std.fmt.parseInt(usize, max_form_count, 10);
+        }
+        if (envs.get("REQBIN_DATABASE")) |database| {
+            config.database = database;
+        }
+        if (envs.get("REQBIN_ADDRESS")) |address| {
+            config.address = address;
+        }
+        if (envs.get("REQBIN_PORT")) |port| {
+            config.port = try std.fmt.parseInt(u16, port, 10);
+        }
+        if (envs.get("REQBIN_AUTH")) |auth| {
+            config.auth = auth;
+        }
+
+        return config;
+    }
+};
+
 pub fn main() !void {
     var debug_allocator = std.heap.DebugAllocator(.{}).init;
     const allocator, const is_debug = allocator: {
@@ -26,7 +71,7 @@ pub fn main() !void {
     var envs = try std.process.getEnvMap(allocator);
     defer envs.deinit();
 
-    const config = try reqbin.Config.parseFromEnvMap(envs);
+    const config = try Config.parseFromEnvMap(envs);
 
     const database = try allocator.dupeZ(u8, config.database);
     defer allocator.free(database);
