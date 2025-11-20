@@ -64,17 +64,16 @@ fn catchRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void 
         return;
     };
 
-    var addr_buf: [64]u8 = undefined;
-    const address = std.fmt.bufPrint(&addr_buf, "{f}", .{req.address}) catch unreachable;
+    const remote_addr = http_utils.retrieveRemoteAddr(req, ctx.trusted_proxies);
+    const remote_addr_str = remote_addr: {
+        var buf: [64]u8 = undefined;
+        break :remote_addr std.fmt.bufPrint(&buf, "{f}", .{remote_addr}) catch unreachable;
+    };
 
     if (bin.ips) |ips| {
         for (ips.value) |ip| {
-            const pos = std.mem.lastIndexOfScalar(u8, address, ':').?;
-            const remote_ip = address[0..pos];
-
-            if (std.mem.eql(u8, ip.value, remote_ip)) {
-                break;
-            }
+            const allowed_addr = try std.net.Address.parseIp(ip.value, remote_addr.getPort());
+            if (allowed_addr.eql(remote_addr)) break;
         } else {
             respondError(res, .forbidden);
             return;
@@ -102,13 +101,6 @@ fn catchRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void 
         };
         break :body body;
     } else null;
-
-    const remote_addr = http_utils.retrieveRemoteAddr(req, ctx.trusted_proxies);
-
-    const remote_addr_str = remote_addr: {
-        var buf: [64]u8 = undefined;
-        break :remote_addr std.fmt.bufPrint(&buf, "{f}", .{remote_addr}) catch unreachable;
-    };
 
     var model = models.Request{
         .bin = bin.id.?,
