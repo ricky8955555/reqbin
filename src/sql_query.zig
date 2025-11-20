@@ -63,7 +63,8 @@ pub const bins = struct {
             \\  query INTEGER NOT NULL,
             \\  header INTEGER NOT NULL,
             \\  ips TEXT,
-            \\  methods TEXT
+            \\  methods TEXT,
+            \\  content_type INTEGER
             \\);
             \\
             \\CREATE UNIQUE INDEX IF NOT EXISTS idx_bins_name ON bins(name);
@@ -74,7 +75,9 @@ pub const bins = struct {
 
     pub fn addOrUpdate(db: *sqlite.Db, allocator: std.mem.Allocator, model: *models.Bin) !void {
         const query =
-            \\INSERT OR REPLACE INTO bins(id, name, body, query, header, ips, methods) VALUES(?, ?, ?, ?, ?, ?, ?)
+            \\INSERT OR REPLACE INTO
+            \\bins(id, name, body, query, header, ips, methods, content_type)
+            \\VALUES(?, ?, ?, ?, ?, ?, ?, ?)
         ;
 
         var stmt = try db.prepare(query);
@@ -89,7 +92,9 @@ pub const bins = struct {
 
     pub fn get(db: *sqlite.Db, allocator: std.mem.Allocator, name: []const u8) !?models.Bin {
         const query =
-            \\SELECT id, name, body, query, header, ips, methods FROM bins WHERE name = ?
+            \\SELECT id, name, body, query, header, ips, methods, content_type
+            \\FROM bins
+            \\WHERE name = ?
         ;
 
         var stmt = try db.prepare(query);
@@ -111,7 +116,9 @@ pub const bins = struct {
 
     pub fn fetch(db: *sqlite.Db, allocator: std.mem.Allocator, options: models.FetchOptions) ![]models.Bin {
         const query =
-            \\SELECT id, name, body, query, header, ips, methods FROM bins LIMIT $limit OFFSET $offset
+            \\SELECT id, name, body, query, header, ips, methods, content_type
+            \\FROM bins
+            \\LIMIT $limit OFFSET $offset
         ;
 
         var stmt = try db.prepare(query);

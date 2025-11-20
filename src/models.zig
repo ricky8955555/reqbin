@@ -152,6 +152,22 @@ pub const StringKeyValue = struct {
     }
 };
 
+pub const ContentType = enum(u2) {
+    raw = 0,
+    form = 1,
+    json = 2,
+
+    pub const BaseType = u2;
+
+    pub fn bindField(self: ContentType, _: Allocator) !BaseType {
+        return @intFromEnum(self);
+    }
+
+    pub fn readField(_: Allocator, value: BaseType) !ContentType {
+        return @enumFromInt(value);
+    }
+};
+
 pub const Body = struct {
     const InnerBody = union(enum) {
         raw: []const u8,
@@ -187,23 +203,34 @@ pub const Body = struct {
         return .{ .value = parsed };
     }
 
-    pub fn parseFromRequest(request: *httpz.Request) !?Body {
-        const optional_content_type = request.header("content-type");
+    pub fn parseFromRequest(request: *httpz.Request, expected_content_type: ?ContentType) !?Body {
+        const content_type = typ: {
+            if (expected_content_type) |content_type| break :typ content_type;
 
-        if (optional_content_type) |content_type| {
-            if (std.mem.eql(u8, content_type, "application/json")) {
+            const optional_content_type = request.header("content-type");
+
+            if (optional_content_type) |content_type| {
+                if (std.mem.eql(u8, content_type, "application/json")) break :typ .json;
+                if (std.mem.eql(u8, content_type, "application/x-www-form-urlencoded")) break :typ .form;
+            }
+
+            break :typ .raw;
+        };
+
+        switch (content_type) {
+            .json => {
                 const json = try request.jsonValue() orelse return null;
                 return .{ .value = .{ .json = json } };
-            }
-
-            if (std.mem.eql(u8, content_type, "application/x-www-form-urlencoded")) {
+            },
+            .form => {
                 const form = try request.formData();
                 return .{ .value = .{ .form = .{ .map = form.* } } };
-            }
+            },
+            .raw => {
+                const body = request.body() orelse return null;
+                return .{ .value = .{ .raw = body } };
+            },
         }
-
-        const body = request.body() orelse return null;
-        return .{ .value = .{ .raw = body } };
     }
 };
 
@@ -320,4 +347,6 @@ pub const Bin = struct {
 
     ips: ?Array(IpString) = null,
     methods: ?Array(httpz.Method) = null,
+
+    content_type: ?ContentType = null,
 };

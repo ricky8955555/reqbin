@@ -92,7 +92,14 @@ fn catchRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void 
 
     const query = if (bin.query) models.StringKeyValue{ .map = (try req.query()).* } else null;
     const headers = if (bin.headers) models.StringKeyValue{ .map = req.headers.* } else null;
-    const body = if (bin.body) try models.Body.parseFromRequest(req) else null;
+
+    const body = if (bin.body) body: {
+        const body = models.Body.parseFromRequest(req, bin.content_type) catch {
+            respondError(res, .bad_request);
+            return;
+        };
+        break :body body;
+    } else null;
 
     var model = models.Request{
         .bin = bin.id.?,
