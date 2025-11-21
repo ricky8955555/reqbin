@@ -8,4 +8,4 @@ REQBIN_DATABASE="${REQBIN_DATABASE:-data.db}"
 dbmate --url "sqlite:$REQBIN_DATABASE" --no-dump-schema up
 
 # Run the app
-exec /app/reqbin "$@"
+exec reqbin "$@"
