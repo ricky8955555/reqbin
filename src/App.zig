@@ -31,9 +31,10 @@ pub fn init(ctx: *Context, config: httpz.Config) !App {
     router.put("/", createOrUpdateBin, .{});
     router.get("/:bin", inspectBin, .{});
     router.delete("/:bin", deleteBin, .{});
+    router.get("/:bin/requests", viewBin, .{});
+    router.delete("/:bin/requests", clearBin, .{});
+
     router.all("/:bin/access", catchRequest, .{});
-    router.get("/:bin/view", viewBin, .{});
-    router.post("/:bin/clear", clearBin, .{});
 
     return app;
 }
