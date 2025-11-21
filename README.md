@@ -23,8 +23,9 @@ Then access the application via http://localhost:7280.
 - `PUT /`: Create or update a bin. Bin model should be represented in JSON format.
 - `GET /`: Fetch all bins. (Limit and offset can be specified via params `limit` and `offset`, with default values `20` and `0`)
 - `GET /:bin`: Inspect a bin.
-- `DELETE /:bin`: Remove a bin and all the data it captures.
-- `GET /:bin/view`: Fetch all captured data of a bin. (Limit and offset can be specified via params `limit` and `offset`, with default values `20` and `0`)
+- `DELETE /:bin`: Remove a bin and all the requests it captures.
+- `GET /:bin/requests`: Fetch all captured requests of a bin. (Limit and offset can be specified via params `limit` and `offset`, with default values `20` and `0`)
+- `DELETE /:bin/requests`: Clear all captured requests of a bin.
 
 #### Capture
 
@@ -79,4 +80,5 @@ All configurations can be done by setting the following environment variables.
 - `REQBIN_DATABASE`: Database path. (Default: `data.db`)
 - `REQBIN_ADDRESS`: The address used by the HTTP service. (Default: `127.0.0.1`, Dockerfile Default: `0.0.0.0`)
 - `REQBIN_PORT`: The port used by the HTTP service. (Default: `7280`)
-- `REQBIN_AUTH`: The auth credential in format `[username]:[password]` used for bin management API authentication. (Default: `null`)
+- `REQBIN_AUTH`: The auth credential in format `[username]:[password]` used for bin management API authentication. (Default: `null`, while authentication is disabled)
+- `REQBIN_TRUSTED_PROXIES`: The trusted proxies in CIDR format seperated by commas `,`, used to retrieve real client ip. (Default: `null`, while no proxy is trusted)
