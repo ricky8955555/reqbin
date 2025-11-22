@@ -18,7 +18,7 @@ pub const requests = struct {
         model.id = db.getLastInsertRowID();
     }
 
-    pub fn fetchOrdered(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, options: models.FetchOptions) ![]models.Request {
+    pub fn fetchOrdered(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, options: models.PageParams) ![]models.Request {
         const query =
             \\SELECT id, bin, method, remote_addr, headers, query, body, time FROM requests
             \\WHERE bin = ?
@@ -41,6 +41,18 @@ pub const requests = struct {
         defer stmt.deinit();
 
         try stmt.exec(.{}, .{ .bin = bin });
+    }
+
+    pub fn count(db: *sqlite.Db, bin: i64) !usize {
+        const query =
+            \\SELECT COUNT(*) FROM requests WHERE bin = ?
+        ;
+
+        var stmt = try db.prepare(query);
+        defer stmt.deinit();
+
+        const result = try stmt.one(usize, .{}, .{ .bin = bin });
+        return result.?;
     }
 };
 
@@ -86,7 +98,7 @@ pub const bins = struct {
         return stmt.one(i64, .{}, .{ .name = name });
     }
 
-    pub fn fetch(db: *sqlite.Db, allocator: std.mem.Allocator, options: models.FetchOptions) ![]models.Bin {
+    pub fn fetch(db: *sqlite.Db, allocator: std.mem.Allocator, options: models.PageParams) ![]models.Bin {
         const query =
             \\SELECT id, name, body, query, header, ips, methods, content_type
             \\FROM bins
@@ -108,5 +120,14 @@ pub const bins = struct {
         defer stmt.deinit();
 
         try stmt.exec(.{}, .{ .name = name });
+    }
+
+    pub fn count(db: *sqlite.Db) !usize {
+        const query =
+            \\SELECT COUNT(*) FROM bins
+        ;
+
+        const result = try db.one(usize, query, .{}, .{});
+        return result.?;
     }
 };

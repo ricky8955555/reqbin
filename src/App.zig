@@ -162,7 +162,7 @@ fn viewBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     };
 
     const query = try req.query();
-    const options = models.FetchOptions.parseFromStringKeyValue(query) catch {
+    const options = models.PageParams.parseFromStringKeyValue(query) catch {
         respondError(res, .unprocessable_entity);
         return;
     };
@@ -170,9 +170,11 @@ fn viewBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     var arena = std.heap.ArenaAllocator.init(ctx.allocator);
     defer arena.deinit();
 
+    const total = try sql_query.requests.count(ctx.db, bin);
     const requests = try sql_query.requests.fetchOrdered(ctx.db, arena.allocator(), bin, options);
+    const page = models.Page(models.Request){ .total = total, .count = requests.len, .data = requests };
 
-    try res.json(requests, .{});
+    try res.json(page, .{});
 }
 
 fn fetchBins(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
@@ -182,7 +184,7 @@ fn fetchBins(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     }
 
     const query = try req.query();
-    const options = models.FetchOptions.parseFromStringKeyValue(query) catch {
+    const options = models.PageParams.parseFromStringKeyValue(query) catch {
         respondError(res, .unprocessable_entity);
         return;
     };
@@ -190,9 +192,11 @@ fn fetchBins(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     var arena = std.heap.ArenaAllocator.init(ctx.allocator);
     defer arena.deinit();
 
+    const total = try sql_query.bins.count(ctx.db);
     const bins = try sql_query.bins.fetch(ctx.db, arena.allocator(), options);
+    const page = models.Page(models.Bin){ .total = total, .count = bins.len, .data = bins };
 
-    try res.json(bins, .{});
+    try res.json(page, .{});
 }
 
 fn createOrUpdateBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {

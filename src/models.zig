@@ -205,12 +205,12 @@ pub const Request = struct {
     time: Timestamp,
 };
 
-pub const FetchOptions = struct {
+pub const PageParams = struct {
     limit: u64 = 20,
     offset: u64 = 0,
 
-    pub fn parseFromStringKeyValue(kv: *httpz.key_value.StringKeyValue) !FetchOptions {
-        var options = FetchOptions{};
+    pub fn parseFromStringKeyValue(kv: *httpz.key_value.StringKeyValue) !PageParams {
+        var options = PageParams{};
 
         if (kv.get("limit")) |limit| {
             options.limit = try std.fmt.parseInt(u64, limit, 10);
@@ -222,6 +222,14 @@ pub const FetchOptions = struct {
         return options;
     }
 };
+
+pub fn Page(comptime T: type) type {
+    return struct {
+        total: usize,
+        count: usize,
+        data: []T,
+    };
+}
 
 pub fn Array(comptime T: type) type {
     return struct {
