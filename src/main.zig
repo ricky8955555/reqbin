@@ -106,7 +106,7 @@ pub fn main() !void {
     var db = try sqlite.Db.init(.{
         .mode = .{ .File = database },
         .open_flags = .{ .create = true, .write = true },
-        .threading_mode = .MultiThread,
+        .threading_mode = .Serialized,
     });
     defer db.deinit();
 
