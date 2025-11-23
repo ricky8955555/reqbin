@@ -22,45 +22,45 @@ Then access the application via http://localhost:7280.
 
 ##### `PUT /`
 
-Create or update a bin. Bin model should be represented in JSON format.
-
-Returns (`Bin`): The created bin.
+> Create or update a bin. Bin model should be represented in JSON format.
+> 
+> Returns (`Bin`): The created bin.
 
 ##### `GET /`
 
-Fetch all bins.
-    
-Query (`PageParams`): Page options.
-    
-Returns (`Page[Bin]`): The bins with offset and limit specified via page options.
+> Fetch all bins.
+> 
+> Query (`PageParams`): Page options.
+> 
+> Returns (`Page[Bin]`): The bins with offset and limit specified via page options.
 
 ##### `GET /:bin`
 
-Inspect a bin.
-    
-Returns (`Bin`): The bin to inspect.
+> Inspect a bin.
+> 
+> Returns (`Bin`): The bin to inspect.
 
 ##### `DELETE /:bin`
 
-Remove a bin and all the requests it captures.
+> Remove a bin and all the requests it captures.
 
 ##### `GET /:bin/requests`
 
-Fetch all captured requests of a bin.
-    
-Returns (`Page[Request]`): The requests with offset and limit specified via page options.
+> Fetch all captured requests of a bin.
+> 
+> Returns (`Page[Request]`): The requests with offset and limit specified via page options.
 
 ##### `DELETE /:bin/requests`
 
-Clear all captured requests of a bin.
+> Clear all captured requests of a bin.
 
 #### Capture
 
 ##### `ANY /:bin/access`
 
-Any request to this route will be captured into specific bin, then the captured data will be returned to the client.
-    
-Returns (`Request`): The request info captured.
+> Any request to this route will be captured into specific bin, then the captured data will be returned to the client.
+> 
+> Returns (`Request`): The request info captured.
 
 ### Params
 
