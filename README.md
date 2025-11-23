@@ -4,10 +4,26 @@ reqbin is a tool to collect requests for inspecting and debugging.
 
 ## Quick start
 
+### Pull or Build Image
+
+You can pull the image directly from ghcr.io:
+
+```shell
+docker pull ghcr.io/ricky8955555/reqbin:main
+```
+
+Or you can build it by yourself:
+
+```shell
+git clone https://github.com/ricky8955555/reqbin.git
+docker build . -t reqbin
+```
+
+### Start the container
+
 ```shell
 touch data.db
-docker build . -t reqbin
-docker run --name reqbin -v $(pwd)/data.db:/app/data.db -p 7280:7280 reqbin:latest
+docker run -d --name reqbin -v $(pwd)/data.db:/app/data.db -p 7280:7280 reqbin
 ```
 
 Then access the application via http://localhost:7280.
