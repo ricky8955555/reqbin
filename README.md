@@ -40,7 +40,7 @@ Inspect a bin.
     
 Returns (`Bin`): The bin to inspect.
 
-###### `DELETE /:bin`
+##### `DELETE /:bin`
 
 Remove a bin and all the requests it captures.
 
