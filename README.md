@@ -21,15 +21,30 @@ Then access the application via http://localhost:7280.
 **Following API is authentication needed if configured.**
 
 - `PUT /`: Create or update a bin. Bin model should be represented in JSON format.
-- `GET /`: Fetch all bins. (Limit and offset can be specified via params `limit` and `offset`, with default values `20` and `0`)
+    Returns (`Bin`): The created bin.
+
+- `GET /`: Fetch all bins.
+    Query (`PageParams`): Page options.
+    Returns (`Page[Bin]`): The bins with offset and limit specified via page options.
+
 - `GET /:bin`: Inspect a bin.
+    Returns (`Bin`): The bin to inspect.
+
 - `DELETE /:bin`: Remove a bin and all the requests it captures.
-- `GET /:bin/requests`: Fetch all captured requests of a bin. (Limit and offset can be specified via params `limit` and `offset`, with default values `20` and `0`)
+
+- `GET /:bin/requests`: Fetch all captured requests of a bin.
+    Returns (`Page[Request]`): The requests with offset and limit specified via page options.
+
 - `DELETE /:bin/requests`: Clear all captured requests of a bin.
 
 #### Capture
 
 - `ANY /:bin/access`: Any request to this route will be captured into specific bin, then the captured data will be returned to the client.
+    Returns (`Request`): The request info captured.
+
+### Params
+
+- `:bin`: Bin name.
 
 ### Models
 
@@ -66,6 +81,27 @@ Then access the application via http://localhost:7280.
         "raw": "foobar"                 // Body content (Key could be raw/json/form, determined by bin's (if specified) or request's content type)
     },
     "time": 1301965440                  // UTC unix timestamp of the request
+}
+```
+
+#### Page
+
+```jsonc
+{
+    "total": 10,    // Total count of data
+    "count": 1,     // Count of data in the current page
+    "data": [       // Data in the current page
+        // ...
+    ],
+}
+```
+
+#### PageParams
+
+```jsonc
+{
+    "offset": 0,    // Data query offset
+    "limit": 20,    // Data query limit
 }
 ```
 
