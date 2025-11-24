@@ -83,7 +83,7 @@ pub fn main() !void {
 
     const config = try Config.parseFromEnvMap(envs);
 
-    const trusted_proxies = trusted_proxies: {
+    const trusted_proxies, const trusted_proxies_allocated = trusted_proxies: {
         if (config.trusted_proxies) |trusted_proxies_str| {
             var trusted_proxies = try std.ArrayList(reqbin.net.Network).initCapacity(allocator, 16);
             defer trusted_proxies.deinit(allocator);
@@ -94,10 +94,13 @@ pub fn main() !void {
                 try trusted_proxies.append(allocator, network);
             }
 
-            break :trusted_proxies try trusted_proxies.toOwnedSlice(allocator);
+            break :trusted_proxies .{ try trusted_proxies.toOwnedSlice(allocator), true };
         } else {
-            break :trusted_proxies &.{};
+            break :trusted_proxies .{ &.{}, false };
         }
+    };
+    defer if (trusted_proxies_allocated) {
+        allocator.free(trusted_proxies);
     };
 
     const database = try allocator.dupeZ(u8, config.database);
