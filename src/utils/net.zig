@@ -4,11 +4,11 @@ pub const Ip4Network = struct {
     addr: u32,
     prefix_len: u8,
 
-    pub fn network_mask(self: Ip4Network) u32 {
-        return ~self.host_mask();
+    pub fn networkMask(self: Ip4Network) u32 {
+        return ~self.hostMask();
     }
 
-    fn host_mask(self: Ip4Network) u32 {
+    fn hostMask(self: Ip4Network) u32 {
         if (self.prefix_len == 32) return 0;
         return @as(u32, std.math.maxInt(u32)) >> @intCast(self.prefix_len);
     }
@@ -23,7 +23,7 @@ pub const Ip4Network = struct {
         const addr = addrToInt(network);
         const self = Ip4Network{ .addr = addr, .prefix_len = prefix_len };
 
-        if (addr & self.host_mask() != 0) return error.HostBitsSet;
+        if (addr & self.hostMask() != 0) return error.HostBitsSet;
 
         return self;
     }
@@ -39,7 +39,7 @@ pub const Ip4Network = struct {
 
     pub fn isHost(self: Ip4Network, host: std.net.Ip4Address) bool {
         const addr = addrToInt(host);
-        return (addr & self.network_mask()) == self.addr;
+        return (addr & self.networkMask()) == self.addr;
     }
 };
 
@@ -47,11 +47,11 @@ pub const Ip6Network = struct {
     addr: u128,
     prefix_len: u8,
 
-    fn network_mask(self: Ip6Network) u128 {
-        return ~self.host_mask();
+    fn networkMask(self: Ip6Network) u128 {
+        return ~self.hostMask();
     }
 
-    fn host_mask(self: Ip6Network) u128 {
+    fn hostMask(self: Ip6Network) u128 {
         if (self.prefix_len == 128) return 0;
         return @as(u128, std.math.maxInt(u128)) >> @intCast(self.prefix_len);
     }
@@ -66,7 +66,7 @@ pub const Ip6Network = struct {
         const addr = addrToInt(network);
         const self = Ip6Network{ .addr = addr, .prefix_len = prefix_len };
 
-        if (addr & self.host_mask() != 0) return error.HostBitsSet;
+        if (addr & self.hostMask() != 0) return error.HostBitsSet;
 
         return self;
     }
@@ -82,7 +82,7 @@ pub const Ip6Network = struct {
 
     pub fn isHost(self: Ip6Network, host: std.net.Ip6Address) bool {
         const addr = addrToInt(host);
-        return (addr & self.network_mask()) == self.addr;
+        return (addr & self.networkMask()) == self.addr;
     }
 };
 
