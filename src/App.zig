@@ -246,6 +246,8 @@ fn deleteBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     const bin_name = req.param("bin").?;
 
     try sql_query.bins.delete(ctx.db, bin_name);
+
+    res.setStatus(.no_content);
 }
 
 fn clearBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
@@ -261,4 +263,6 @@ fn clearBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     };
 
     try sql_query.requests.clear(ctx.db, bin);
+
+    res.setStatus(.no_content);
 }
