@@ -7,7 +7,9 @@ const models = @import("models.zig");
 pub const requests = struct {
     pub fn add(db: *sqlite.Db, allocator: std.mem.Allocator, model: *models.Request) !void {
         const query =
-            \\INSERT INTO requests(id, bin, method, remote_addr, headers, query, body, time) VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+            \\INSERT INTO
+            \\requests(id, bin, method, remote_addr, headers, query, body, time)
+            \\VALUES(?, ?, ?, ?, ?, ?, ?, ?)
         ;
 
         var stmt = try db.prepare(query);
@@ -20,7 +22,8 @@ pub const requests = struct {
 
     pub fn fetchOrdered(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, options: models.PageParams) ![]models.Request {
         const query =
-            \\SELECT id, bin, method, remote_addr, headers, query, body, time FROM requests
+            \\SELECT id, bin, method, remote_addr, headers, query, body, time
+            \\FROM requests
             \\WHERE bin = ?
             \\ORDER BY time
             \\LIMIT $limit OFFSET $offset
