@@ -35,6 +35,19 @@ pub const requests = struct {
         return stmt.all(models.Request, allocator, .{}, .{ .bin = bin, .limit = options.limit, .offset = options.offset });
     }
 
+    pub fn get(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, request: i64) !?models.Request {
+        const query =
+            \\SELECT id, bin, method, remote_addr, headers, query, body, time
+            \\FROM requests
+            \\WHERE id = ? AND bin = ?
+        ;
+
+        var stmt = try db.prepare(query);
+        defer stmt.deinit();
+
+        return stmt.oneAlloc(models.Request, allocator, .{}, .{ .id = request, .bin = bin });
+    }
+
     pub fn clear(db: *sqlite.Db, bin: i64) !void {
         const query =
             \\DELETE FROM requests WHERE bin = ?

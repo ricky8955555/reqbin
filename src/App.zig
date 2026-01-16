@@ -33,6 +33,7 @@ pub fn init(ctx: *Context, config: httpz.Config) !App {
     router.delete("/:bin", deleteBin, .{});
     router.get("/:bin/requests", viewBin, .{});
     router.delete("/:bin/requests", clearBin, .{});
+    router.get("/:bin/requests/:request", inspectRequest, .{});
 
     router.all("/:bin/access", catchRequest, .{});
 
@@ -265,4 +266,32 @@ fn clearBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     try sql_query.requests.clear(ctx.db, bin);
 
     res.setStatus(.no_content);
+}
+
+fn inspectRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
+    if (!try authorize(ctx, req)) {
+        respondError(res, .unauthorized);
+        return;
+    }
+
+    const bin_name = req.param("bin").?;
+    const request_id = std.fmt.parseInt(i64, req.param("request").?, 10) catch {
+        respondError(res, .unprocessable_entity);
+        return;
+    };
+
+    var arena = std.heap.ArenaAllocator.init(ctx.allocator);
+    defer arena.deinit();
+
+    const bin = try sql_query.bins.getId(ctx.db, bin_name) orelse {
+        respondError(res, .not_found);
+        return;
+    };
+
+    const request = try sql_query.requests.get(ctx.db, arena.allocator(), bin, request_id) orelse {
+        respondError(res, .not_found);
+        return;
+    };
+
+    try res.json(request, .{});
 }
