@@ -27,16 +27,16 @@ pub fn init(ctx: *Context, config: httpz.Config) !App {
     app.server = try httpz.Server(*Context).init(ctx.allocator, config, ctx);
 
     var router = try app.server.router(.{});
-    router.get("/", fetchBins, .{});
-    router.put("/", createOrUpdateBin, .{});
-    router.get("/:bin", inspectBin, .{});
-    router.delete("/:bin", deleteBin, .{});
-    router.get("/:bin/requests", viewBin, .{});
-    router.delete("/:bin/requests", clearBin, .{});
-    router.get("/:bin/requests/:request", inspectRequest, .{});
-    router.delete("/:bin/requests/:request", deleteRequest, .{});
+    router.get("/api/bins", fetchBins, .{});
+    router.put("/api/bins", createOrUpdateBin, .{});
+    router.get("/api/bins/:bin", inspectBin, .{});
+    router.delete("/api/bins/:bin", deleteBin, .{});
+    router.get("/api/bins/:bin/requests", viewBin, .{});
+    router.delete("/api/bins/:bin/requests", clearBin, .{});
+    router.get("/api/bins/:bin/requests/:request", inspectRequest, .{});
+    router.delete("/api/bins/:bin/requests/:request", deleteRequest, .{});
 
-    router.all("/:bin/access", catchRequest, .{});
+    router.all("/access/:bin", catchRequest, .{});
 
     return app;
 }
