@@ -34,6 +34,7 @@ pub fn init(ctx: *Context, config: httpz.Config) !App {
     router.get("/:bin/requests", viewBin, .{});
     router.delete("/:bin/requests", clearBin, .{});
     router.get("/:bin/requests/:request", inspectRequest, .{});
+    router.delete("/:bin/requests/:request", deleteRequest, .{});
 
     router.all("/:bin/access", catchRequest, .{});
 
@@ -294,4 +295,26 @@ fn inspectRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !voi
     };
 
     try res.json(request, .{});
+}
+
+fn deleteRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
+    if (!try authorize(ctx, req)) {
+        respondError(res, .unauthorized);
+        return;
+    }
+
+    const bin_name = req.param("bin").?;
+    const request = std.fmt.parseInt(i64, req.param("request").?, 10) catch {
+        respondError(res, .unprocessable_entity);
+        return;
+    };
+
+    const bin = try sql_query.bins.getId(ctx.db, bin_name) orelse {
+        respondError(res, .not_found);
+        return;
+    };
+
+    try sql_query.requests.delete(ctx.db, bin, request);
+
+    res.setStatus(.no_content);
 }

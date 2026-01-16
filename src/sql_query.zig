@@ -48,6 +48,17 @@ pub const requests = struct {
         return stmt.oneAlloc(models.Request, allocator, .{}, .{ .id = request, .bin = bin });
     }
 
+    pub fn delete(db: *sqlite.Db, bin: i64, request: i64) !void {
+        const query =
+            \\DELETE FROM requests WHERE id = ? AND bin = ?
+        ;
+
+        var stmt = try db.prepare(query);
+        defer stmt.deinit();
+
+        try stmt.exec(.{}, .{ .id = request, .bin = bin });
+    }
+
     pub fn clear(db: *sqlite.Db, bin: i64) !void {
         const query =
             \\DELETE FROM requests WHERE bin = ?
