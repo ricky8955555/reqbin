@@ -81,6 +81,8 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "reqbin", .module = mod },
             },
         }),
+        // ensure sqlite could be compiled on debug optimization.
+        .use_llvm = true,
     });
 
     const sqlite = b.dependency("sqlite", .{
