@@ -36,13 +36,13 @@ Then access the application via http://localhost:7280.
 
 **Following API is authentication needed if configured.**
 
-##### `PUT /`
+##### `PUT /api/bins`
 
 > Create or update a bin. Bin model should be represented in JSON format.
 > 
 > Returns (`Bin`): The created bin.
 
-##### `GET /`
+##### `GET /api/bins`
 
 > Fetch all bins.
 > 
@@ -50,29 +50,39 @@ Then access the application via http://localhost:7280.
 > 
 > Returns (`Page[Bin]`): The bins with offset and limit specified via page options.
 
-##### `GET /:bin`
+##### `GET /api/bins/:bin`
 
 > Inspect a bin.
 > 
 > Returns (`Bin`): The bin to inspect.
 
-##### `DELETE /:bin`
+##### `DELETE /api/bins/:bin`
 
 > Remove a bin and all the requests it captures.
 
-##### `GET /:bin/requests`
+##### `GET /api/bins/:bin/requests`
 
 > Fetch all captured requests of a bin.
 > 
 > Returns (`Page[Request]`): The requests with offset and limit specified via page options.
 
-##### `DELETE /:bin/requests`
+##### `DELETE /api/bins/:bin/requests`
 
 > Clear all captured requests of a bin.
 
+##### `GET /api/bins/:bin/requests/:request`
+
+> Inspect a request.
+> 
+> Returns (`Request`): The request to inspect.
+
+##### `DELETE /api/bins/:bin/requests/:request`
+
+> Remove a request.
+
 #### Capture
 
-##### `ANY /:bin/access`
+##### `ANY /access/:bin`
 
 > Any request to this route will be captured into specific bin, then the captured data will be returned to the client.
 > 
