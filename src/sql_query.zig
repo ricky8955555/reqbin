@@ -20,12 +20,27 @@ pub const requests = struct {
         model.id = db.getLastInsertRowID();
     }
 
-    pub fn fetchOrdered(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, options: models.PageParams) ![]models.Request {
+    pub fn fetchOrderedAsc(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, options: models.PageParams) ![]models.Request {
         const query =
             \\SELECT id, bin, method, remote_addr, headers, query, body, time
             \\FROM requests
             \\WHERE bin = ?
-            \\ORDER BY time
+            \\ORDER BY time ASC
+            \\LIMIT $limit OFFSET $offset
+        ;
+
+        var stmt = try db.prepare(query);
+        defer stmt.deinit();
+
+        return stmt.all(models.Request, allocator, .{}, .{ .bin = bin, .limit = options.limit, .offset = options.offset });
+    }
+
+    pub fn fetchOrderedDesc(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, options: models.PageParams) ![]models.Request {
+        const query =
+            \\SELECT id, bin, method, remote_addr, headers, query, body, time
+            \\FROM requests
+            \\WHERE bin = ?
+            \\ORDER BY time DESC
             \\LIMIT $limit OFFSET $offset
         ;
 

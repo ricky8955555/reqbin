@@ -173,7 +173,13 @@ fn viewBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     defer arena.deinit();
 
     const total = try sql_query.requests.count(ctx.db, bin);
-    const requests = try sql_query.requests.fetchOrdered(ctx.db, arena.allocator(), bin, options);
+    const requests = requests: {
+        if (query.has("desc")) {
+            break :requests try sql_query.requests.fetchOrderedDesc(ctx.db, arena.allocator(), bin, options);
+        } else {
+            break :requests try sql_query.requests.fetchOrderedAsc(ctx.db, arena.allocator(), bin, options);
+        }
+    };
     const page = models.Page(models.Request){ .total = total, .count = requests.len, .data = requests };
 
     try res.json(page, .{});
