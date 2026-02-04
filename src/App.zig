@@ -1,3 +1,4 @@
+const builtin = @import("builtin");
 const std = @import("std");
 
 const httpz = @import("httpz");
@@ -37,6 +38,8 @@ pub fn init(ctx: *Context, config: httpz.Config) !App {
     router.delete("/api/bins/:bin/requests/:request", deleteRequest, .{});
 
     router.all("/access/:bin", catchRequest, .{});
+
+    router.get("/", serveDashboard, .{});
 
     return app;
 }
@@ -323,4 +326,19 @@ fn deleteRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
     try sql_query.requests.delete(ctx.db, bin, request);
 
     res.setStatus(.no_content);
+}
+
+fn serveDashboard(_: *Context, _: *httpz.Request, res: *httpz.Response) !void {
+    res.content_type = .HTML;
+
+    if (builtin.mode == .Debug) {
+        const file = try std.fs.cwd().openFile("assets/dashboard.html", .{ .mode = .read_only });
+
+        var reader_buffer: [4096]u8 = undefined;
+        var reader = file.reader(&reader_buffer);
+
+        _ = try reader.interface.streamRemaining(res.writer());
+    } else {
+        res.body = @embedFile("dashboard");
+    }
 }

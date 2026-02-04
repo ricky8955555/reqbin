@@ -107,6 +107,17 @@ pub fn build(b: *std.Build) void {
 
     mod.addImport("zdt", zdt.module("zdt"));
 
+    if (optimize != .Debug) {
+        const assets = [_]struct { []const u8, []const u8 }{
+            .{ "assets/dashboard.html", "dashboard" },
+        };
+
+        for (assets) |asset| {
+            const path, const name = asset;
+            mod.addAnonymousImport(name, .{ .root_source_file = b.path(path) });
+        }
+    }
+
     // This declares intent for the executable to be installed into the
     // install prefix when running `zig build` (i.e. when executing the default
     // step). By default the install prefix is `zig-out/` but can be overridden

@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reqbin Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/default.min.css" rel="stylesheet">
+</head>
+
+<body>
+  <div x-data="app()">
+    <!-- Initialize Tooltips -->
+    <div x-init="initTooltips()"></div>
+    <!-- Try Authorization With Empty Credential -->
+    <div x-init="checkAuth()"></div>
+
+    <!-- Authorization Page -->
+    <template x-if="!authorized">
+      <div class="mt-5 container">
+        <template x-if="invalidCredential">
+          <div class="alert alert-danger" role="alert">
+            Invalid credential
+          </div>
+        </template>
+        <div class="text-center">
+          <h1>Reqbin</h1>
+          <p>Authorization Needed</p>
+        </div>
+        <form @submit.prevent="tryAuth()">
+          <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input type="text" class="form-control" x-model="credential.username">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" x-model="credential.password">
+          </div>
+          <button type="submit" class="btn btn-primary">Authorize</button>
+        </form>
+      </div>
+    </template>
+
+    <!-- Main Page -->
+    <template x-if="authorized">
+      <div>
+        <!-- Bin Selector -->
+        <div class="offcanvas offcanvas-start" id="binSelector" x-init="fetchBins()">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title">Bins</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+          </div>
+          <div class="offcanvas-body">
+            <ul class="list-group">
+              <template x-for="bin in bins">
+                <li @click="activeBin = bin" class="list-group-item list-group-item-action"
+                  :class="{ 'active': activeBin && activeBin.id === bin.id }">
+                  <span x-text="bin.name"></span>
+                  <span><small>(ID: <span x-text="bin.id"></span>)</small></span>
+                </li>
+              </template>
+            </ul>
+          </div>
+        </div>
+
+        <header>
+          <!-- Navbar -->
+          <nav class="navbar bg-body-tertiary">
+            <div class="container-fluid">
+              <a class="navbar-brand" href="#" data-bs-toggle="offcanvas" data-bs-target="#binSelector">
+                <span x-text="activeBin ? activeBin.name : 'Click here to select bin'"></span>
+                <template x-if="activeBin"><span><small>(ID: <span
+                        x-text="activeBin.id"></span>)</small></span></template>
+              </a>
+            </div>
+          </nav>
+        </header>
+
+        <main class="container-fluid mt-5 px-5">
+          <!-- Initialize Requests Page Updater -->
+          <div x-init="initRequestPageUpdater()"></div>
+
+          <!-- Bin Component -->
+          <template x-if="activeBin">
+            <div class="container mt-5">
+              <!-- General Info -->
+              <div>
+                <p class="fs-3 fw-medium lh-1">General</p>
+                <span class="badge text-bg-primary" x-show="activeBin.body" data-bs-toggle="tooltip"
+                  data-bs-placement="top" data-bs-title="Capture Body">Body</span>
+                <span class="badge text-bg-primary" x-show="activeBin.query" data-bs-toggle="tooltip"
+                  data-bs-placement="top" data-bs-title="Capture Query">Query</span>
+                <span class="badge text-bg-primary" x-show="activeBin.headers" data-bs-toggle="tooltip"
+                  data-bs-placement="top" data-bs-title="Capture Headers">Headers</span>
+                <template x-for="method in (activeBin.methods ?? ['ANY'])">
+                  <span>
+                    <span class="badge text-bg-secondary" x-text="method" data-bs-toggle="tooltip"
+                      data-bs-placement="top" data-bs-title="Allowed Method"></span>
+                  </span>
+                </template>
+                <span class="badge text-bg-success"
+                  x-text="activeBin.content_type ? activeBin.content_type.toUpperCase() : 'Unspecified'"
+                  data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Content Type"></span>
+              </div>
+
+              <!-- Allowed IPs -->
+              <div class="mt-5">
+                <p class="lh-1">
+                  <span class="fs-3 fw-medium">Allowed IPs</span>
+                  <template x-if="activeBin.ips">
+                    <span class="ms-3 badge text-bg-success" data-bs-toggle="tooltip" data-bs-placement="top"
+                      data-bs-title="Capture requests from IPs specified below only">Activated</span>
+                  </template>
+                  <template x-if="!activeBin.ips">
+                    <span class="ms-3 badge text-bg-warning" data-bs-toggle="tooltip" data-bs-placement="top"
+                      data-bs-title="Capture all requests from any source">Unset</span>
+                  </template>
+                </p>
+                <template x-if="activeBin.ips">
+                  <ul class="list-group list-group">
+                    <template x-for="ip in activeBin.ips">
+                      <li class="list-group-item" x-text="ip"></li>
+                    </template>
+                  </ul>
+                </template>
+              </div>
+
+              <!-- Requests -->
+              <div class="mt-5">
+                <div class="float-md-start">
+                  <p class="fs-3 fw-medium lh-1">Requests</p>
+                </div>
+
+                <div class="float-md-end row row-cols-md-auto g-2 align-items-center">
+                  <!-- Decending Switch -->
+                  <div class="col-12">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" switch x-model="requestConfig.desc">
+                      <label class="form-check-label">
+                        Descending
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Page Size Selector -->
+                  <div class="col-12">
+                    <select class="form-select form-select-inline" x-model="requestConfig.limit">
+                      <template x-for="limit in [10, 20, 50, 100]">
+                        <option :value="limit"><span x-text="limit"></span> / Page</option>
+                      </template>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="clearfix"></div>
+
+                <!-- Table -->
+                <div class="accordion mt-2" x-id="['request-detail']">
+                  <template x-for="request in requests.data" :key="request.id">
+                    <div class="accordion-item">
+                      <!-- Header (Summary) -->
+                      <div class="accordion-header">
+                        <button class="accordion-button py-2 collapsed" type="button" data-bs-toggle="collapse"
+                          :data-bs-target="`#${$id('request-detail', request.id)}`">
+                          <div class="row w-100">
+                            <div class="col-md-4" x-text="timestampToDate(request.time).toLocaleString()"></div>
+                            <div class="col-md-2" x-text="request.method"></div>
+                            <div class="col-md-6" x-text="request.remote_addr"></div>
+                          </div>
+                        </button>
+                      </div>
+
+                      <!-- Collapsed Body (Detail)-->
+                      <div class="accordion-collapse collapse" :id="$id('request-detail', request.id)">
+                        <div class="accordion-body pt-3 pb-1">
+                          <div class="row">
+                            <!-- Left Grid (Headers & Query) -->
+                            <div class="col-lg-6">
+                              <!-- Headers -->
+                              <h5 class="mb-3">Headers</h5>
+                              <ul class="list-group mb-3" style="font-size: .9rem"
+                                x-data="{ headers: request.headers ? Object.entries(request.headers) : [] }">
+                                <template x-if="headers.length === 0">
+                                  <li class="list-group-item">
+                                    No headers
+                                  </li>
+                                </template>
+                                <template x-if="headers.length > 0">
+                                  <template x-for="[name, value] of headers">
+                                    <li class="list-group-item lh-sm">
+                                      <div class="row">
+                                        <div class="col-md-4 fw-medium" x-text="name">
+                                        </div>
+                                        <div class="col-md-8">
+                                          <code x-text="value"></code>
+                                        </div>
+                                      </div>
+                                    </li>
+                                  </template>
+                                </template>
+                              </ul>
+
+                              <!-- Query -->
+                              <h5 class="mb-3 mt-3">Query</h5>
+                              <ul class="list-group mb-3" style="font-size: .9rem"
+                                x-data="{ query: request.query ? Object.entries(request.query) : [] }">
+                                <template x-if="query.length === 0">
+                                  <li class="list-group-item">
+                                    No query parameters
+                                  </li>
+                                </template>
+                                <template x-if="query.length > 0">
+                                  <template x-for="[name, value] of query">
+                                    <li class="list-group-item lh-sm">
+                                      <div class="row">
+                                        <div class="col-md-4">
+                                          <b x-text="name"></b>
+                                        </div>
+                                        <div class="col-md-8">
+                                          <code x-text="value"></code>
+                                        </div>
+                                      </div>
+                                    </li>
+                                  </template>
+                                </template>
+                              </ul>
+                            </div>
+
+                            <!-- Right Grid (Body) -->
+                            <div class="col-lg-6">
+                              <!-- Body -->
+                              <h5 class="mb-3">Body</h5>
+                              <div class="border px-3 py-2 mb-3">
+                                <pre class="mb-0" x-html="hljs.highlightAuto(renderBody(request.body)).value"></pre>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+
+                <!-- Pagination -->
+                <nav class="mt-3">
+                  <ul class="pagination">
+                    <!-- First Page -->
+                    <li class="page-item"><a class="page-link" href="#" @click="requestPage = 0">&laquo;</a>
+                    </li>
+                    <!-- Previous Page -->
+                    <template x-if="requestPage > 1">
+                      <li class="page-item"><a class="page-link" href="#" @click="requestPage -= 2">...</a>
+                      </li>
+                    </template>
+                    <template x-if="requestPage > 0">
+                      <li class="page-item"><a class="page-link" href="#" x-text="requestPage"
+                          @click="requestPage--"></a></li>
+                    </template>
+                    <!-- Current Page -->
+                    <li class="page-item"><a class="page-link active" href="#" x-text="requestPage + 1"></a></li>
+                    <!-- Next Page -->
+                    <template x-if="requestPage < requests.pages - 1">
+                      <li class="page-item"><a class="page-link" href="#" x-text="requestPage + 2"
+                          @click="requestPage++"></a></li>
+                    </template>
+                    <template x-if="requestPage < requests.pages - 2">
+                      <li class="page-item"><a class="page-link" href="#" @click="requestPage += 2">...</a>
+                      </li>
+                    </template>
+                    <!-- Last Page -->
+                    <li class="page-item"><a class="page-link" href="#"
+                        @click="requestPage = requests.pages - 1">&raquo;</a></li>
+                  </ul>
+                </nav>
+              </div>
+            </div>
+          </template>
+        </main>
+      </div>
+    </template>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js"></script>
+
+  <script>
+    // @ts-check
+
+    /**
+     * @typedef {Object} Bin
+     * @property {number} id
+     * @property {string} name
+     * @property {boolean} body
+     * @property {boolean} query
+     * @property {boolean} headers
+     * @property {string[]?} ips
+     * @property {string[]?} methods
+     * @property {string?} content_type
+     */
+
+    /**
+     * @typedef {Object} RequestBody
+     * @property {string | undefined} raw
+     * @property {any | undefined} form
+     * @property {any | undefined} json
+     */
+
+    /**
+     * @typedef {Object} RequestData
+     * @property {number} id
+     * @property {number} bin
+     * @property {string} method
+     * @property {string} remote_addr
+     * @property {any} headers
+     * @property {any} query
+     * @property {RequestBody} body
+     * @property {number} time
+     */
+
+    /**
+     * @template T
+     * @typedef {Object} Page
+     * @property {number} total
+     * @property {number} count
+     * @property {T[]} data
+     */
+
+    /**
+      * @typedef {Object} BasicAuth
+      * @property {string} username
+      * @property {string} password
+      */
+
+    const app = () => ({
+      /** @type {boolean} */
+      authorized: false,
+      /** @type {BasicAuth} */
+      credential: {
+        username: "",
+        password: "",
+      },
+      /** @type {boolean} */
+      invalidCredential: false,
+
+      /** @type {Bin?} */
+      activeBin: null,
+      /** @type {Request?} */
+      activeRequest: null,
+
+      /** @type {Bin[]} */
+      bins: [],
+
+      requestConfig: {
+        /** @type {number} */
+        limit: 10,
+        /** @type {boolean} */
+        desc: true,
+      },
+
+      /** @type {number} */
+      requestPage: 0,
+
+      requests: {
+        /** @type {number} */
+        pages: 0,
+        /** @type {number} */
+        total: 0,
+        /** @type {RequestData[]} */
+        data: [],
+      },
+
+      /**
+       * @param {RequestInfo | URL} input
+       * @param {RequestInit} [init]
+       * @returns {Promise<Response>}
+       */
+      fetch(input, init) {
+        const credential = this.ensureCredential();
+        if (credential !== null) {
+          if (init === undefined) init = {};
+          if (init.headers === undefined) init.headers = {};
+          init.headers["Authorization"] = "Basic " + btoa(`${credential.username}:${credential.password}`);
+        }
+
+        return fetch(input, init);
+      },
+
+      /**
+       * @param {string} [keyword]
+       * @returns {Promise<void>}
+       */
+      async fetchBins(keyword = "") {
+        this.bins = [];
+
+        const limit = 20;
+
+        const url = new URL("/api/bins", window.location.origin);
+        url.searchParams.append("limit", limit.toString());
+
+        for (let offset = 0; ; offset += limit) {
+          url.searchParams.set("offset", offset.toString());
+
+          const resp = await this.fetch(url);
+          /** @type {Page<Bin>} */
+          const body = await resp.json();
+
+          this.bins = [...this.bins, ...body.data];
+
+          if (body.count < limit) break;
+        }
+      },
+
+      /**
+       * @returns {Promise<void>}
+       */
+      async loadRequestPage() {
+        if (this.activeBin === null) return;
+
+        const offset = this.requestPage * this.requestConfig.limit;
+
+        const url = new URL(`/api/bins/${encodeURI(this.activeBin.name)}/requests`, window.location.origin);
+        url.searchParams.append("offset", offset.toString());
+        url.searchParams.append("limit", this.requestConfig.limit.toString());
+
+        if (this.requestConfig.desc) url.searchParams.append("desc", "true");
+
+        const resp = await this.fetch(url);
+        /** @type {Page<RequestData>} */
+        const body = await resp.json();
+
+        this.requests.total = body.total;
+        this.requests.pages = Math.ceil(body.total / this.requestConfig.limit);
+        this.requests.data = body.data;
+      },
+
+      /**
+       * @returns {void}
+       */
+      initRequestPageUpdater() {
+        const reload = () => {
+          this.requestPage = 0;
+          this.loadRequestPage();
+        };
+
+        this.$watch('activeBin', reload);
+        this.$watch('requestConfig', reload);
+        this.$watch('requestPage', () => this.loadRequestPage());
+      },
+
+      /**
+       * @returns {void}
+       */
+      initTooltips() {
+        const tooltips = [];
+        const initialized = new Set();
+
+        const callback = () => {
+          const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+
+          for (const tooltipTrigger of tooltipTriggerList) {
+            if (!initialized.has(tooltipTrigger)) {
+              tooltips.push(new globalThis.bootstrap.Tooltip(tooltipTrigger)); // eslint-disable-line
+              initialized.add(tooltipTrigger);
+            }
+          }
+        };
+
+        const observer = new MutationObserver(callback);
+        observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+      },
+
+      /**
+       * @param {any} obj
+       * @returns {string}
+       */
+      renderPrettyJson(obj) {
+        return JSON.stringify(obj, null, 2);
+      },
+
+      /**
+       * @param {RequestBody} body
+       * @returns {string}
+       */
+      renderBody(body) {
+        if (body === null) return "(empty)";
+
+        if (body.form !== undefined) return this.renderPrettyJson(body.form);
+        if (body.json !== undefined) return this.renderPrettyJson(body.json);
+        if (body.raw !== undefined) return body.raw === "" ? "(empty)" : body.raw;
+        return "(empty)";
+      },
+
+      /**
+       * @param {number} timestamp
+       * @returns {Date}
+       */
+      timestampToDate(timestamp) {
+        return new Date(timestamp * 1000);
+      },
+
+      /**
+       * @returns {BasicAuth?}
+       */
+      ensureCredential() {
+        if (this.credential.username === "" || this.credential.password === "") return null;
+        return this.credential;
+      },
+
+      /**
+       * @returns {Promise<void>}
+       */
+      async checkAuth() {
+        if (this.authorized) return;
+
+        const url = new URL("/api/bins", window.location.origin);
+        url.searchParams.append("limit", "1");
+
+        const resp = await this.fetch(url);
+        if (resp.status === 401) return;
+
+        this.authorized = true;
+      },
+
+      /**
+       * @returns {Promise<void>}
+       */
+      async tryAuth() {
+        this.invalidCredential = false;
+        await this.checkAuth();
+        this.invalidCredential = !this.authorized;
+      },
+    });
+  </script>
+</body>
+
+</html>
