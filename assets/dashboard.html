@@ -270,7 +270,7 @@
                     </template>
                     <!-- Last Page -->
                     <li class="page-item"><a class="page-link" href="#"
-                        @click="requestPage = requests.pages - 1">&raquo;</a></li>
+                          @click="requestPage = Math.max(0, requests.pages - 1)">&raquo;</a></li>
                   </ul>
                 </nav>
               </div>
