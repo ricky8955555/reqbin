@@ -89,9 +89,7 @@ fn catchRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void 
 
     if (bin.methods) |methods| {
         for (methods.value) |method| {
-            if (method == req.method) {
-                break;
-            }
+            if (method == req.method) break;
         } else {
             respondError(res, .method_not_allowed);
             return;
