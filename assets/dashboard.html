@@ -86,7 +86,7 @@
             <div class="mt-5">
               <!-- General Info -->
               <div>
-                <p class="fs-3 fw-medium lh-1">General</p>
+                <div class="fs-3 fw-medium mb-2">General</div>
                 <span class="badge text-bg-primary" x-show="activeBin.body" data-bs-toggle="tooltip"
                   data-bs-placement="top" data-bs-title="Capture Body">Body</span>
                 <span class="badge text-bg-primary" x-show="activeBin.query" data-bs-toggle="tooltip"
@@ -106,14 +106,14 @@
 
               <!-- Allowed IPs -->
               <div class="mt-5">
-                <p class="lh-1">
+                <div class="mb-2">
                   <span class="fs-3 fw-medium">Allowed IPs</span>
                     <span class="ms-3 badge text-bg-success" data-bs-toggle="tooltip" data-bs-placement="top"
                     data-bs-title="Capture requests from IPs specified below only"
                     x-show="activeBin.ips">Activated</span>
                     <span class="ms-3 badge text-bg-warning" data-bs-toggle="tooltip" data-bs-placement="top"
                     data-bs-title="Capture all requests from any source" x-show="!activeBin.ips">Unset</span>
-                </p>
+                </div>
                 <template x-if="activeBin.ips">
                   <ul class="list-group list-group">
                     <template x-for="ip in activeBin.ips">
@@ -125,11 +125,10 @@
 
               <!-- Requests -->
               <div class="mt-5">
-                <div class="float-md-start">
-                  <p class="fs-3 fw-medium lh-1">Requests</p>
-                </div>
+                <div class="d-md-flex justify-content-md-between align-items-center mb-2">
+                  <div class="fs-3 fw-medium mb-2 mb-md-0">Requests</div>
 
-                <div class="float-md-end row row-cols-md-auto g-2 align-items-center">
+                  <div class="row row-cols-md-auto g-2 align-items-center">
                   <!-- Decending Switch -->
                   <div class="col-12">
                     <div class="form-check form-switch">
@@ -149,8 +148,7 @@
                     </select>
                   </div>
                 </div>
-
-                <div class="clearfix"></div>
+                </div>
 
                 <!-- Table -->
                 <div class="accordion mt-2" x-id="['request-detail']">
