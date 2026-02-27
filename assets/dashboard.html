@@ -249,25 +249,19 @@
                     <li class="page-item"><a class="page-link" href="#" @click="requestPage = 0">&laquo;</a>
                     </li>
                     <!-- Previous Page -->
-                    <template x-if="requestPage > 1">
-                      <li class="page-item"><a class="page-link" href="#" @click="requestPage -= 2">...</a>
+                    <li class="page-item" x-show="requestPage > 1"><a class="page-link" href="#"
+                        @click="requestPage -= 2">...</a>
                       </li>
-                    </template>
-                    <template x-if="requestPage > 0">
-                      <li class="page-item"><a class="page-link" href="#" x-text="requestPage"
+                    <li class="page-item" x-show="requestPage > 0"><a class="page-link" href="#" x-text="requestPage"
                           @click="requestPage--"></a></li>
-                    </template>
                     <!-- Current Page -->
                     <li class="page-item"><a class="page-link active" href="#" x-text="requestPage + 1"></a></li>
                     <!-- Next Page -->
-                    <template x-if="requestPage < requests.pages - 1">
-                      <li class="page-item"><a class="page-link" href="#" x-text="requestPage + 2"
-                          @click="requestPage++"></a></li>
-                    </template>
-                    <template x-if="requestPage < requests.pages - 2">
-                      <li class="page-item"><a class="page-link" href="#" @click="requestPage += 2">...</a>
+                    <li class="page-item" x-show="requestPage < requests.pages - 1"><a class="page-link" href="#"
+                        x-text="requestPage + 2" @click="requestPage++"></a></li>
+                    <li class="page-item" x-show="requestPage < requests.pages - 2"><a class="page-link" href="#"
+                        @click="requestPage += 2">...</a>
                       </li>
-                    </template>
                     <!-- Last Page -->
                     <li class="page-item"><a class="page-link" href="#"
                           @click="requestPage = Math.max(0, requests.pages - 1)">&raquo;</a></li>
