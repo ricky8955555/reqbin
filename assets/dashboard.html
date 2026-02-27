@@ -108,14 +108,11 @@
               <div class="mt-5">
                 <p class="lh-1">
                   <span class="fs-3 fw-medium">Allowed IPs</span>
-                  <template x-if="activeBin.ips">
                     <span class="ms-3 badge text-bg-success" data-bs-toggle="tooltip" data-bs-placement="top"
-                      data-bs-title="Capture requests from IPs specified below only">Activated</span>
-                  </template>
-                  <template x-if="!activeBin.ips">
+                    data-bs-title="Capture requests from IPs specified below only"
+                    x-show="activeBin.ips">Activated</span>
                     <span class="ms-3 badge text-bg-warning" data-bs-toggle="tooltip" data-bs-placement="top"
-                      data-bs-title="Capture all requests from any source">Unset</span>
-                  </template>
+                    data-bs-title="Capture all requests from any source" x-show="!activeBin.ips">Unset</span>
                 </p>
                 <template x-if="activeBin.ips">
                   <ul class="list-group list-group">
