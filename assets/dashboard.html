@@ -16,6 +16,17 @@
     <!-- Try Authorization With Empty Credential -->
     <div x-init="checkAuth()"></div>
 
+    <!-- Notifications -->
+    <div class="position-fixed z-3 w-50 start-50 translate-middle-x mt-2">
+      <template x-for="notification in notifications">
+        <div class="alert alert-dismissible my-2" role="alert" :class="`alert-${notification.level}`"
+          x-data="{ show: false }" x-init="$nextTick(() => show = true)" x-show="show" x-transition>
+          <span x-text="notification.message"></span>
+          <button type="button" class="btn-close" @click="unnotify(notification)"></button>
+        </div>
+      </template>
+    </div>
+
     <!-- Authorization Page -->
     <template x-if="!authorized">
       <div class="mt-5 container">
@@ -322,6 +333,12 @@
       * @property {string} password
       */
 
+    /**
+     * @typedef {Object} Notify
+     * @property {string} level
+     * @property {string} message
+     */
+
     const app = () => ({
       /** @type {boolean} */
       authorized: false,
@@ -360,12 +377,16 @@
         data: [],
       },
 
+      /** @type {Notify[]} */
+      notifications: [],
+
       /**
        * @param {RequestInfo | URL} input
        * @param {RequestInit} [init]
+       * @param {boolean} [notifyError]
        * @returns {Promise<Response>}
        */
-      fetch(input, init) {
+      async fetch(input, init, notifyError = true) {
         const credential = this.ensureCredential();
         if (credential !== null) {
           if (init === undefined) init = {};
@@ -373,7 +394,12 @@
           init.headers["Authorization"] = "Basic " + btoa(`${credential.username}:${credential.password}`);
         }
 
-        return fetch(input, init);
+        try {
+          return await fetch(input, init);
+        } catch (ex) {
+          if (notifyError) this.notify(ex, "danger");
+          throw ex;
+        }
       },
 
       /**
@@ -519,6 +545,33 @@
         this.invalidCredential = false;
         await this.checkAuth();
         this.invalidCredential = !this.authorized;
+      },
+
+      /**
+       * @param {string} message
+       * @param {string} [level]
+       * @param {number} [timeout]
+       * @returns {void}
+       */
+      notify(message, level = "info", timeout = 3000) {
+        const notification = {
+          level: level,
+          message: message,
+        };
+        this.notifications.push(notification);
+
+        if (timeout > 0) {
+          setTimeout(() => this.unnotify(notification), timeout);
+        }
+      },
+
+      /**
+       * @param {Notify} notification
+       * @returns {void}
+       */
+      unnotify(notification) {
+        const index = this.notifications.indexOf(notification);
+        if (index !== -1) this.notifications.splice(index, 1);
       },
     });
   </script>
