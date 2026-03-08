@@ -219,6 +219,12 @@ fn createOrUpdateBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !
         return;
     };
 
+    const old_id = try sql_query.bins.getId(ctx.db, model.name);
+    if ((old_id != null and model.id != null) and old_id != model.id) {
+        respondError(res, .conflict);
+        return;
+    }
+
     var arena = std.heap.ArenaAllocator.init(ctx.allocator);
     defer arena.deinit();
 
