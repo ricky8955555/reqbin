@@ -220,7 +220,9 @@ fn createOrUpdateBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !
     };
 
     if (model.name.len == 0) {
-        respondError(res, .bad_request);
+        res.setStatus(.bad_request);
+        res.body = "Name cannot be empty.";
+        res.content_type = .TEXT;
         return;
     }
 
