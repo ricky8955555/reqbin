@@ -151,6 +151,19 @@ fn authorize(ctx: *Context, req: *httpz.Request) !bool {
     }
 }
 
+fn isValidBinName(name: []const u8) bool {
+    if (name.len == 0) return false;
+
+    for (name) |ch| {
+        switch (ch) {
+            'a'...'z', 'A'...'Z', '0'...'9', '-', '_' => continue,
+            else => return false,
+        }
+    }
+
+    return true;
+}
+
 fn viewBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     if (!try authorize(ctx, req)) {
         respondError(res, .unauthorized);
@@ -219,9 +232,9 @@ fn createOrUpdateBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !
         return;
     };
 
-    if (model.name.len == 0) {
+    if (!isValidBinName(model.name)) {
         res.setStatus(.bad_request);
-        res.body = "Name cannot be empty.";
+        res.body = "Name is not valid.";
         res.content_type = .TEXT;
         return;
     }
