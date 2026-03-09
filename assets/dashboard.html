@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reqbin Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1/font/bootstrap-icons.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/default.min.css" rel="stylesheet">
 </head>
 
@@ -71,7 +72,137 @@
                   <span><small>(ID: <span x-text="bin.id"></span>)</small></span>
                 </li>
               </template>
+              <li class="list-group-item list-group-item-action" data-bs-toggle="modal"
+                data-bs-target="#updateBinDialog" @click="initUpdatingBin(false)">+ Create a bin ...</li>
             </ul>
+          </div>
+        </div>
+
+        <!-- Bin Deleting Confirmation Dialog -->
+        <div class="modal fade" id="deleteBinDialog" tabindex="-1">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h1 class="modal-title fs-5">Delete Bin</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <p>Do you really want to <b>delete the bin and all the requests it captures</b>?</p>
+                <p class="text-danger"><b>The action is IRREVERSIBLE!!!</b></p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" @click="deleteBin()"
+                  data-bs-dismiss="modal">Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bin Clearing Confirmation Dialog -->
+        <div class="modal fade" id="clearBinDialog" tabindex="-1">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h1 class="modal-title fs-5">Clear Bin</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <p>Do you really want to <b>clear all captured requests of the bin</b>?</p>
+                <p class="text-danger"><b>The action is IRREVERSIBLE!!!</b></p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" @click="clearBin()" data-bs-dismiss="modal">Clear</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bin Creating/Updating Dialog -->
+        <div class="modal fade" id="updateBinDialog" data-bs-backdrop="static" tabindex="-1">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h1 class="modal-title fs-5">Create/Update Bin</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <template x-if="updatingBin">
+                <div class="modal-body">
+                  <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-control" placeholder="Foobar" x-model="updatingBin.name">
+                  </div>
+                  <div class="mb-3">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" x-model="updatingBin.body">
+                      <label class="form-check-label">Capture body</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" x-model="updatingBin.query">
+                      <label class="form-check-label">Capture query</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" x-model="updatingBin.headers">
+                      <label class="form-check-label">Capture headers</label>
+                    </div>
+                  </div>
+                  <div class="mb-2">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" switch x-model="updatingBin.allowAnyIP">
+                      <label class="form-check-label">Allow any source</label>
+                    </div>
+                    <div class="my-3" x-show="!updatingBin.allowAnyIP">
+                      <label class="form-label">Allowed IPs</label>
+                      <template x-for="(ip, i) in updatingBin.ips">
+                        <div class="input-group" x-data="{ newAllowedIP: '' }">
+                          <input type="text" class="form-control rounded-0 border-bottom-0" :value="ip" readonly>
+                          <a href="#" class="input-group-text link-danger fs-5 lh-1 rounded-0 border-bottom-0"
+                            @click="updatingBin.ips.splice(i, 1)"><i class="bi bi-x"></i></a>
+                        </div>
+                      </template>
+                      <div class="input-group" x-data="{ newAllowedIP: '' }">
+                        <input type="text" class="form-control rounded-top-0" placeholder="Type allowed IP here..."
+                          x-model="updatingBin.newIP">
+                        <a href="#" class="input-group-text link-success fs-5 lh-1 rounded-top-0"
+                          @click="pushNewIP()"><i class="bi bi-plus"></i></a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" switch x-model="updatingBin.allowAnyMethod">
+                      <label class="form-check-label">Allow any method</label>
+                    </div>
+                    <div class="my-3" x-show="!updatingBin.allowAnyMethod">
+                      <label class="form-label d-block">Allowed Methods</label>
+                      <template x-for="method in validMethods">
+                        <div class="form-check form-check-inline">
+                          <input class="form-check-input" type="checkbox" :value="method" x-model="updatingBin.methods">
+                          <label class="form-check-label" x-text="method"></label>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label">Content Type</label>
+                    <select class="form-select" x-model="updatingBin.contentType">
+                      <option value="">Unspecified</option>
+                      <template x-for="contentType in validContentTypes">
+                        <option :value="contentType" x-text="contentType"
+                          :selected="updatingBin.contentType === contentType"></option>
+                      </template>
+                    </select>
+                  </div>
+                </div>
+              </template>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" @click="updateBin()">Submit</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -88,13 +219,32 @@
           </nav>
         </header>
 
-        <main class="container mt-5">
+        <main class="container mt-4 mt-md-5">
           <!-- Initialize Requests Page Updater -->
           <div x-init="initRequestPageUpdater()"></div>
 
           <!-- Bin Component -->
           <template x-if="activeBin">
-            <div class="mt-5">
+            <div>
+              <!-- Actions -->
+              <div class="d-flex justify-content-md-end mb-5 mb-md-0 row g-1 row-cols-auto">
+                <div class="col">
+                  <button class="btn btn-outline-secondary" @click="loadBin()">Reload</button>
+                </div>
+                <div class="col">
+                  <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#updateBinDialog"
+                    @click="initUpdatingBin(true)">Update</button>
+                </div>
+                <div class="col">
+                  <button class="btn btn-outline-warning" data-bs-toggle="modal"
+                    data-bs-target="#clearBinDialog">Clear</button>
+                </div>
+                <div class="col">
+                  <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal"
+                    data-bs-target="#deleteBinDialog">Delete</button>
+                </div>
+              </div>
+
               <!-- General Info -->
               <div>
                 <div class="fs-3 fw-medium mb-2">General</div>
@@ -119,10 +269,10 @@
               <div class="mt-5">
                 <div class="mb-2">
                   <span class="fs-3 fw-medium">Allowed IPs</span>
-                    <span class="ms-3 badge text-bg-success" data-bs-toggle="tooltip" data-bs-placement="top"
+                  <span class="ms-3 badge text-bg-success" data-bs-toggle="tooltip" data-bs-placement="top"
                     data-bs-title="Capture requests from IPs specified below only"
                     x-show="activeBin.ips">Activated</span>
-                    <span class="ms-3 badge text-bg-warning" data-bs-toggle="tooltip" data-bs-placement="top"
+                  <span class="ms-3 badge text-bg-warning" data-bs-toggle="tooltip" data-bs-placement="top"
                     data-bs-title="Capture all requests from any source" x-show="!activeBin.ips">Unset</span>
                 </div>
                 <template x-if="activeBin.ips">
@@ -140,25 +290,25 @@
                   <div class="fs-3 fw-medium mb-2 mb-md-0">Requests</div>
 
                   <div class="row row-cols-md-auto g-2 align-items-center">
-                  <!-- Decending Switch -->
-                  <div class="col-12">
-                    <div class="form-check form-switch">
-                      <input class="form-check-input" type="checkbox" switch x-model="requestConfig.desc">
-                      <label class="form-check-label">
-                        Descending
-                      </label>
+                    <!-- Decending Switch -->
+                    <div class="col-12">
+                      <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" switch x-model="requestConfig.desc">
+                        <label class="form-check-label">
+                          Descending
+                        </label>
+                      </div>
+                    </div>
+
+                    <!-- Page Size Selector -->
+                    <div class="col-12">
+                      <select class="form-select form-select-inline" x-model="requestConfig.limit">
+                        <template x-for="limit in [10, 20, 50, 100]">
+                          <option :value="limit"><span x-text="limit"></span> / Page</option>
+                        </template>
+                      </select>
                     </div>
                   </div>
-
-                  <!-- Page Size Selector -->
-                  <div class="col-12">
-                    <select class="form-select form-select-inline" x-model="requestConfig.limit">
-                      <template x-for="limit in [10, 20, 50, 100]">
-                        <option :value="limit"><span x-text="limit"></span> / Page</option>
-                      </template>
-                    </select>
-                  </div>
-                </div>
                 </div>
 
                 <!-- Table -->
@@ -257,9 +407,9 @@
                     <!-- Previous Page -->
                     <li class="page-item" x-show="requestPage > 1"><a class="page-link" href="#"
                         @click="requestPage -= 2">...</a>
-                      </li>
+                    </li>
                     <li class="page-item" x-show="requestPage > 0"><a class="page-link" href="#" x-text="requestPage"
-                          @click="requestPage--"></a></li>
+                        @click="requestPage--"></a></li>
                     <!-- Current Page -->
                     <li class="page-item"><a class="page-link active" href="#" x-text="requestPage + 1"></a></li>
                     <!-- Next Page -->
@@ -267,10 +417,10 @@
                         x-text="requestPage + 2" @click="requestPage++"></a></li>
                     <li class="page-item" x-show="requestPage < requests.pages - 2"><a class="page-link" href="#"
                         @click="requestPage += 2">...</a>
-                      </li>
+                    </li>
                     <!-- Last Page -->
                     <li class="page-item"><a class="page-link" href="#"
-                          @click="requestPage = Math.max(0, requests.pages - 1)">&raquo;</a></li>
+                        @click="requestPage = Math.max(0, requests.pages - 1)">&raquo;</a></li>
                   </ul>
                 </nav>
               </div>
@@ -290,7 +440,7 @@
 
     /**
      * @typedef {Object} Bin
-     * @property {number} id
+     * @property {number?} id
      * @property {string} name
      * @property {boolean} body
      * @property {boolean} query
@@ -301,11 +451,26 @@
      */
 
     /**
-     * @typedef {Object} RequestBody
-     * @property {string | undefined} raw
-     * @property {any | undefined} form
-     * @property {any | undefined} json
+     * @typedef {Object} UpdatingBin
+     * @property {number?} id
+     * @property {string} name
+     * @property {boolean} body
+     * @property {boolean} query
+     * @property {boolean} headers
+     * @property {boolean} allowAnyIP
+     * @property {string[]} ips
+     * @property {string} newIP
+     * @property {boolean} allowAnyMethod
+     * @property {string[]} methods
+     * @property {string} contentType
      */
+
+    /**
+      * @typedef {Object} RequestBody
+      * @property {string | undefined} raw
+      * @property {any | undefined} form
+      * @property {any | undefined} json
+      */
 
     /**
      * @typedef {Object} RequestData
@@ -328,16 +493,21 @@
      */
 
     /**
-      * @typedef {Object} BasicAuth
-      * @property {string} username
-      * @property {string} password
-      */
+     * @typedef {Object} BasicAuth
+     * @property {string} username
+     * @property {string} password
+     */
 
     /**
      * @typedef {Object} Notify
      * @property {string} level
      * @property {string} message
      */
+
+    /** @type {string[]} */
+    const validMethods = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "CONNECT"];
+    /** @type {string[]} */
+    const validContentTypes = ["raw", "json", "form"];
 
     const app = () => ({
       /** @type {boolean} */
@@ -352,8 +522,6 @@
 
       /** @type {Bin?} */
       activeBin: null,
-      /** @type {Request?} */
-      activeRequest: null,
 
       /** @type {Bin[]} */
       bins: [],
@@ -377,6 +545,9 @@
         data: [],
       },
 
+      /** @type {UpdatingBin?} */
+      updatingBin: null,
+
       /** @type {Notify[]} */
       notifications: [],
 
@@ -384,9 +555,10 @@
        * @param {RequestInfo | URL} input
        * @param {RequestInit} [init]
        * @param {boolean} [notifyError]
+       * @param {boolean} [throwOnFailed]
        * @returns {Promise<Response>}
        */
-      async fetch(input, init, notifyError = true) {
+      async fetch(input, init, notifyError = true, throwOnFailed = true) {
         const credential = this.ensureCredential();
         if (credential !== null) {
           if (init === undefined) init = {};
@@ -395,7 +567,12 @@
         }
 
         try {
-          return await fetch(input, init);
+          const response = await fetch(input, init);
+          if (throwOnFailed && !response.ok) {
+            const text = await response.text();
+            throw new Error(`${response.status}: ${text}`);
+          }
+          return response;
         } catch (ex) {
           if (notifyError) this.notify(ex, "danger");
           throw ex;
@@ -425,6 +602,27 @@
 
           if (body.count < limit) break;
         }
+
+        this.notify(`Load bin list successfully.`, "info", 1500);
+      },
+
+      /**
+       * @param {string?} [name]
+       * @returns {Promise<void>}
+       */
+      async loadBin(name = null) {
+        if (name === null) {
+          if (this.activeBin === null) return;
+          name = this.activeBin.name;
+        }
+
+        const resp = await this.fetch(`/api/bins/${encodeURI(name)}`);
+        /** @type {Bin} */
+        const bin = await resp.json();
+
+        this.activeBin = bin;
+
+        this.notify(`Bin '${name}' loaded successfully.`, "info", 1500);
       },
 
       /**
@@ -448,6 +646,33 @@
         this.requests.total = body.total;
         this.requests.pages = Math.ceil(body.total / this.requestConfig.limit);
         this.requests.data = body.data;
+      },
+
+      /**
+       * @returns {Promise<void>}
+       */
+      async deleteBin() {
+        if (this.activeBin === null) return;
+
+        await this.fetch(`/api/bins/${encodeURI(this.activeBin.name)}`, { method: "DELETE" });
+
+        this.notify(`Bin '${this.activeBin.name}' has been deleted successfully.`, "success");
+
+        this.activeBin = null;
+        await this.fetchBins();
+      },
+
+      /**
+       * @returns {Promise<void>}
+       */
+      async clearBin() {
+        if (this.activeBin === null) return;
+
+        await this.fetch(`/api/bins/${encodeURI(this.activeBin.name)}/requests`, { method: "DELETE" });
+
+        this.notify(`Bin '${this.activeBin.name}' has been cleared successfully.`, "success");
+
+        await this.loadBin();
       },
 
       /**
@@ -476,7 +701,7 @@
 
           for (const tooltipTrigger of tooltipTriggerList) {
             if (!initialized.has(tooltipTrigger)) {
-              tooltips.push(new globalThis.bootstrap.Tooltip(tooltipTrigger)); // eslint-disable-line
+              tooltips.push(new globalThis.bootstrap.Tooltip(tooltipTrigger));
               initialized.add(tooltipTrigger);
             }
           }
@@ -532,7 +757,7 @@
         const url = new URL("/api/bins", window.location.origin);
         url.searchParams.append("limit", "1");
 
-        const resp = await this.fetch(url);
+        const resp = await this.fetch(url, {}, true, false);
         if (resp.status === 401) return;
 
         this.authorized = true;
@@ -545,6 +770,95 @@
         this.invalidCredential = false;
         await this.checkAuth();
         this.invalidCredential = !this.authorized;
+      },
+
+      /**
+       * @param {boolean} copy
+       * @returns {void}
+       */
+      initUpdatingBin(copy) {
+        if (copy && this.activeBin !== null) {
+          this.updatingBin = {
+            id: this.activeBin.id,
+            name: this.activeBin.name,
+            body: this.activeBin.body,
+            query: this.activeBin.query,
+            headers: this.activeBin.headers,
+            allowAnyIP: this.activeBin.ips === null,
+            ips: this.activeBin.ips !== null ? [...this.activeBin.ips] : [],
+            allowAnyMethod: this.activeBin.methods === null,
+            methods: this.activeBin.methods !== null ? [...this.activeBin.methods] : [],
+            contentType: this.activeBin.content_type ?? "",
+            newIP: "",
+          }
+        } else {
+          this.updatingBin = {
+            id: null,
+            name: "",
+            body: true,
+            query: true,
+            headers: true,
+            allowAnyIP: true,
+            ips: [],
+            allowAnyMethod: true,
+            methods: [],
+            contentType: "",
+            newIP: "",
+          };
+        }
+      },
+
+      /**
+       * @returns {void}
+       */
+      pushNewIP() {
+        if (this.updatingBin === null) return;
+
+        const pattern = /^((((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))|(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])))$/;
+        if (pattern.test(this.updatingBin.newIP)) {
+          this.updatingBin.ips.push(this.updatingBin.newIP);
+          this.updatingBin.newIP = "";
+        } else {
+          this.notify("Invalid IP format.", "danger");
+        }
+      },
+
+      /**
+       * @returns {Promise<void>}
+       */
+      async updateBin() {
+        if (this.updatingBin === null) return;
+
+        if (this.updatingBin.name === "") {
+          this.notify("Bin name cannot be empty", "danger");
+          return;
+        }
+
+        /** @type {Bin} **/
+        const bin = {
+          id: this.updatingBin.id,
+          name: this.updatingBin.name,
+          body: this.updatingBin.body,
+          query: this.updatingBin.query,
+          headers: this.updatingBin.headers,
+          ips: this.updatingBin.allowAnyIP ? null : this.updatingBin.ips,
+          methods: this.updatingBin.allowAnyMethod ? null : this.updatingBin.methods,
+          content_type: this.updatingBin.contentType === "" ? null : this.updatingBin.contentType,
+        };
+
+        await this.fetch("/api/bins", {
+          method: "PUT",
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(bin),
+        });
+
+        this.notify("Create/Update bin successfully.", "success");
+
+        await this.loadBin(bin.name);
+        await this.fetchBins();
       },
 
       /**
