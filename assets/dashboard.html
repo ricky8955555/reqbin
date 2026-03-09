@@ -99,6 +99,27 @@
           </div>
         </div>
 
+        <!-- Request Deleting Confirmation Dialog -->
+        <div class="modal fade" id="deleteRequestDialog" tarequestdex="-1">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h1 class="modal-title fs-5">Delete Request</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <p>Do you really want to <b>delete the request</b>?</p>
+                <p class="text-danger"><b>The action is IRREVERSIBLE!!!</b></p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" @click="deleteRequest()"
+                  data-bs-dismiss="modal">Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Bin Clearing Confirmation Dialog -->
         <div class="modal fade" id="clearBinDialog" tabindex="-1">
           <div class="modal-dialog">
@@ -402,6 +423,12 @@
                               </div>
                             </div>
                           </div>
+
+                          <!-- Actions -->
+                          <div class="mb-3">
+                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal"
+                              data-bs-target="#deleteRequestDialog" @click="activeRequest = request">Delete</button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -532,6 +559,8 @@
 
       /** @type {Bin?} */
       activeBin: null,
+      /** @type {RequestData?} */
+      activeRequest: null,
 
       /** @type {Bin[]} */
       bins: [],
@@ -919,6 +948,20 @@
           this.notify(`Failed to copy endpoint to clipboard. Please copy it manually: <code>${endpointText}</code>`, "warning", 0, false);
         }
       },
+
+      /**
+       * @returns {Promise<void>}
+       */
+      async deleteRequest() {
+        if (this.activeBin === null || this.activeRequest === null) return;
+
+        await this.fetch(`/api/bins/${encodeURI(this.activeBin.name)}/requests/${this.activeRequest.id}`, { method: "DELETE" });
+
+        this.notify(`Request has been deleted successfully.`, "success");
+
+        this.activeRequest = null;
+        await this.loadRequestPage();
+      }
     });
   </script>
 </body>
