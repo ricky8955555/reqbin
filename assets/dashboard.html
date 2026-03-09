@@ -236,6 +236,9 @@
               <!-- Actions -->
               <div class="d-flex justify-content-md-end mb-5 mb-md-0 row g-1 row-cols-auto">
                 <div class="col">
+                  <button class="btn btn-outline-info" @click="copyEndpoint()">Copy Endpoint</button>
+                </div>
+                <div class="col">
                   <button class="btn btn-outline-secondary" @click="loadBin()">Reload</button>
                 </div>
                 <div class="col">
@@ -898,6 +901,23 @@
       unnotify(notification) {
         const index = this.notifications.indexOf(notification);
         if (index !== -1) this.notifications.splice(index, 1);
+      },
+
+      /**
+       * @returns {void}
+       */
+      copyEndpoint() {
+        if (this.activeBin === null) return;
+
+        const endpoint = new URL(`/access/${this.activeBin.name}`, window.location.origin);
+        const endpointText = endpoint.toString();
+
+        try {
+          navigator.clipboard.writeText(endpointText);
+          this.notify("Endpoint has been copied to clipboard successfully.", "success");
+        } catch {
+          this.notify(`Failed to copy endpoint to clipboard. Please copy it manually: <code>${endpointText}</code>`, "warning", 0, false);
+        }
       },
     });
   </script>
