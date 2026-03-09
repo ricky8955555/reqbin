@@ -22,7 +22,7 @@
       <template x-for="notification in notifications">
         <div class="alert alert-dismissible my-2" role="alert" :class="`alert-${notification.level}`"
           x-data="{ show: false }" x-init="$nextTick(() => show = true)" x-show="show" x-transition>
-          <span x-text="notification.message"></span>
+          <span x-html="notification.message"></span>
           <button type="button" class="btn-close" @click="unnotify(notification)"></button>
         </div>
       </template>
@@ -872,9 +872,14 @@
        * @param {string} message
        * @param {string} [level]
        * @param {number} [timeout]
+       * @param {boolean} [escape]
        * @returns {void}
        */
-      notify(message, level = "info", timeout = 3000) {
+      notify(message, level = "info", timeout = 3000, escape = true) {
+        if (escape) {
+          message = new Option(message).innerHTML;
+        }
+
         const notification = {
           level: level,
           message: message,
