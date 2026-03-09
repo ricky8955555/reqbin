@@ -129,10 +129,13 @@
               </div>
               <template x-if="updatingBin">
                 <div class="modal-body">
+                  <!-- Name -->
                   <div class="mb-3">
                     <label class="form-label">Name</label>
                     <input type="text" class="form-control" placeholder="Foobar" x-model="updatingBin.name">
                   </div>
+
+                  <!-- Capture Options -->
                   <div class="mb-3">
                     <div class="form-check">
                       <input class="form-check-input" type="checkbox" x-model="updatingBin.body">
@@ -147,6 +150,8 @@
                       <label class="form-check-label">Capture headers</label>
                     </div>
                   </div>
+
+                  <!-- Allowed IP Settings -->
                   <div class="mb-2">
                     <div class="form-check form-switch">
                       <input class="form-check-input" type="checkbox" switch x-model="updatingBin.allowAnyIP">
@@ -170,6 +175,7 @@
                     </div>
                   </div>
 
+                  <!-- Allowed Method Settings -->
                   <div class="mb-3">
                     <div class="form-check form-switch">
                       <input class="form-check-input" type="checkbox" switch x-model="updatingBin.allowAnyMethod">
@@ -186,6 +192,7 @@
                     </div>
                   </div>
 
+                  <!-- Content Type Settings -->
                   <div class="mb-3">
                     <label class="form-label">Content Type</label>
                     <select class="form-select" x-model="updatingBin.contentType">
