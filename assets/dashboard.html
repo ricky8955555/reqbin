@@ -31,11 +31,6 @@
     <!-- Authorization Page -->
     <template x-if="!authorized">
       <div class="mt-5 container">
-        <template x-if="invalidCredential">
-          <div class="alert alert-danger" role="alert">
-            Invalid credential
-          </div>
-        </template>
         <div class="text-center">
           <h1>Reqbin</h1>
           <p>Authorization Needed</p>
@@ -554,8 +549,6 @@
         username: "",
         password: "",
       },
-      /** @type {boolean} */
-      invalidCredential: false,
 
       /** @type {Bin?} */
       activeBin: null,
@@ -806,9 +799,11 @@
        * @returns {Promise<void>}
        */
       async tryAuth() {
-        this.invalidCredential = false;
         await this.checkAuth();
-        this.invalidCredential = !this.authorized;
+
+        if (!this.authorized) {
+          this.notify("Invalid credential", "danger");
+        }
       },
 
       /**
