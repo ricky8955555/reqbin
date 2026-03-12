@@ -802,7 +802,7 @@
         await this.checkAuth();
 
         if (!this.authorized) {
-          this.notify("Invalid credential", "danger");
+          this.notify("Invalid credential.", "danger");
         }
       },
 
@@ -864,7 +864,7 @@
         if (this.updatingBin === null) return;
 
         if (this.updatingBin.name === "") {
-          this.notify("Bin name cannot be empty", "danger");
+          this.notify("Bin name cannot be empty.", "danger");
           return;
         }
 
