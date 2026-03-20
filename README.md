@@ -108,8 +108,7 @@ Then access the application via http://localhost:7280.
     ],
     "methods": [            // Restrict requests' methods
         "POST"              // Possible values: GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, OTHER
-    ],
-    "content_type": null    // Specify content type if set, otherwise, the content type will be detected via requests' header (Possible values: raw, json, form) (Note: multipart form is not supported)
+    ]
 },
 ```
 
@@ -123,9 +122,7 @@ Then access the application via http://localhost:7280.
     "remote_addr": "127.0.0.1:23333",   // Client address
     "headers": null,                    // Headers (always null if disabled)
     "query": {},                        // Query params (always null if disabled)
-    "body": {                           // Body (null if the function is disabled or the request has no body)
-        "raw": "foobar"                 // Body content (Key could be raw/json/form, determined by bin's (if specified) or request's content type)
-    },
+    "body": "foobar",                   // Body (null if the function is disabled or the request has no body)
     "time": 1301965440                  // UTC unix timestamp of the request
 }
 ```
