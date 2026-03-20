@@ -102,8 +102,8 @@ pub const bins = struct {
     pub fn addOrUpdate(db: *sqlite.Db, allocator: std.mem.Allocator, model: *models.Bin) !void {
         const query =
             \\INSERT OR REPLACE INTO
-            \\bins(id, name, body, query, header, ips, methods)
-            \\VALUES(?, ?, ?, ?, ?, ?, ?)
+            \\bins(id, name, body, query, header, ips, methods, responding)
+            \\VALUES(?, ?, ?, ?, ?, ?, ?, ?)
         ;
 
         var stmt = try db.prepare(query);
@@ -118,7 +118,7 @@ pub const bins = struct {
 
     pub fn get(db: *sqlite.Db, allocator: std.mem.Allocator, name: []const u8) !?models.Bin {
         const query =
-            \\SELECT id, name, body, query, header, ips, methods
+            \\SELECT id, name, body, query, header, ips, methods, responding
             \\FROM bins
             \\WHERE name = ?
         ;
@@ -142,7 +142,7 @@ pub const bins = struct {
 
     pub fn fetch(db: *sqlite.Db, allocator: std.mem.Allocator, options: models.PageParams) ![]models.Bin {
         const query =
-            \\SELECT id, name, body, query, header, ips, methods
+            \\SELECT id, name, body, query, header, ips, methods, responding
             \\FROM bins
             \\LIMIT $limit OFFSET $offset
         ;

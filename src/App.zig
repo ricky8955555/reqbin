@@ -112,7 +112,21 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
 
     try sql_query.captures.add(ctx.db, arena.allocator(), &capture);
 
-    try res.json(model, .{});
+    switch (bin.responding.value) {
+        .static => |static| {
+            var it = static.headers.map.iterator();
+
+            while (it.next()) |header| {
+                res.header(header.key, header.value);
+            }
+
+            const writer = res.writer();
+            try writer.writeAll(static.body);
+        },
+        .capture => {
+            try res.json(capture, .{});
+        },
+    }
 }
 
 fn authorize(ctx: *Context, req: *httpz.Request) !bool {

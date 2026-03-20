@@ -217,6 +217,50 @@ pub const IpString = Validate([]const u8, struct {
     }
 }.validate);
 
+fn JsonField(comptime ValueType: type) type {
+    return struct {
+        const Self = @This();
+
+        value: ValueType,
+
+        pub const BaseType = []const u8;
+
+        pub fn bindField(self: Self, allocator: Allocator) !BaseType {
+            var out = std.Io.Writer.Allocating.init(allocator);
+            defer out.deinit();
+
+            var stringify = std.json.Stringify{ .writer = &out.writer };
+            try stringify.write(self);
+
+            return out.toOwnedSlice();
+        }
+
+        pub fn readField(allocator: Allocator, value: BaseType) !Self {
+            const parsed = try std.json.parseFromSlice(Self, allocator, value, .{ .allocate = .alloc_always });
+            return parsed.value;
+        }
+
+        pub fn jsonStringify(self: Self, jws: anytype) !void {
+            try jws.write(self.value);
+        }
+
+        pub fn jsonParse(allocator: Allocator, source: anytype, options: std.json.ParseOptions) std.json.ParseError(@TypeOf(source.*))!Self {
+            const parsed = try std.json.innerParse(ValueType, allocator, source, options);
+            return .{ .value = parsed };
+        }
+    };
+}
+
+pub const Responding = union(enum) {
+    pub const Static = struct {
+        headers: StringKeyValue,
+        body: []const u8,
+    };
+
+    capture: void,
+    static: Static,
+};
+
 pub const Bin = struct {
     id: ?i64 = null,
 
@@ -228,4 +272,6 @@ pub const Bin = struct {
 
     ips: ?Array(IpString) = null,
     methods: ?Array(httpz.Method) = null,
+
+    responding: JsonField(Responding) = .{ .value = .capture },
 };
