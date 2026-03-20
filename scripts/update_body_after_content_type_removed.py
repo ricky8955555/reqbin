@@ -18,13 +18,13 @@ def main() -> None:
 
     with sqlite3.connect(url) as conn:
         cursor = conn.cursor()
-        result = cursor.execute("SELECT COUNT(*) FROM requests")
+        result = cursor.execute("SELECT COUNT(*) FROM captures")
         count: int = result.fetchone()[0]
 
         for page in range(0, count, PAGESIZE):
             offset = page * PAGESIZE
             result = cursor.execute(
-                "SELECT id, body FROM requests LIMIT $limit OFFSET $offset",
+                "SELECT id, body FROM captures LIMIT $limit OFFSET $offset",
                 {"limit": PAGESIZE, "offset": offset},
             )
             data: list[tuple[int, str | None]] = result.fetchall()
@@ -53,7 +53,7 @@ def main() -> None:
                     case _:
                         assert False, "unreachable branch."
 
-                cursor.execute("UPDATE requests SET body = ? WHERE id = ?", (raw_body, id))
+                cursor.execute("UPDATE captures SET body = ? WHERE id = ?", (raw_body, id))
 
             conn.commit()
 
