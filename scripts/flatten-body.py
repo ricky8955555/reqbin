@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-import sqlite3
-import os
 import functools
-import sys
 import json
+import os
+import sqlite3
+import sys
 import urllib.parse
 from typing import Any, cast
 
