@@ -23,8 +23,7 @@ def main() -> None:
         result = cursor.execute("SELECT COUNT(*) FROM captures")
         count: int = result.fetchone()[0]
 
-        for page in range(0, count, PAGESIZE):
-            offset = page * PAGESIZE
+        for offset in range(0, count, PAGESIZE):
             result = cursor.execute(
                 "SELECT id, body FROM captures LIMIT $limit OFFSET $offset",
                 {"limit": PAGESIZE, "offset": offset},
@@ -43,19 +42,19 @@ def main() -> None:
                 match body_type:
                     case "raw":
                         assert isinstance(body_data, str), "the data of body should be a string."
-                        raw_body = body_data
+                        updated_body = body_data
                     case "json":
-                        raw_body = json.dumps(body_data)
+                        updated_body = json.dumps(body_data)
                     case "form":
                         assert isinstance(body_data, dict), "the data of body should be an object."
                         body_data = cast(dict[str, str], body_data)
-                        raw_body = "&".join(
+                        updated_body = "&".join(
                             f"{key}={urllib.parse.quote(value)}" for key, value in body_data.items()
                         )
                     case _:
                         assert False, "unreachable branch."
 
-                cursor.execute("UPDATE captures SET body = ? WHERE id = ?", (raw_body, id))
+                cursor.execute("UPDATE captures SET body = ? WHERE id = ?", (updated_body, id))
 
             conn.commit()
 
