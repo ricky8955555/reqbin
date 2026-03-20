@@ -100,7 +100,7 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
     const headers = if (bin.headers) models.StringKeyValue{ .map = req.headers.* } else null;
     const body = if (bin.body) req.body() else null;
 
-    var model = models.Capture{
+    var capture = models.Capture{
         .bin = bin.id.?,
         .method = @tagName(req.method),
         .remote_addr = remote_addr_str,
@@ -110,7 +110,7 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
         .time = .{ .value = zdt.Datetime.nowUTC() },
     };
 
-    try sql_query.captures.add(ctx.db, arena.allocator(), &model);
+    try sql_query.captures.add(ctx.db, arena.allocator(), &capture);
 
     try res.json(model, .{});
 }
@@ -220,20 +220,20 @@ fn createOrUpdateBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !
         return;
     }
 
-    var model = req.json(models.Bin) catch null orelse {
+    var bin = req.json(models.Bin) catch null orelse {
         respondError(res, .bad_request);
         return;
     };
 
-    if (!isValidBinName(model.name)) {
+    if (!isValidBinName(bin.name)) {
         res.setStatus(.bad_request);
         res.body = "Name is not valid.";
         res.content_type = .TEXT;
         return;
     }
 
-    const old_id = try sql_query.bins.getId(ctx.db, model.name);
-    if (old_id != null and old_id != model.id) {
+    const old_id = try sql_query.bins.getId(ctx.db, bin.name);
+    if (old_id != null and old_id != bin.id) {
         respondError(res, .conflict);
         return;
     }
@@ -241,9 +241,9 @@ fn createOrUpdateBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !
     var arena = std.heap.ArenaAllocator.init(ctx.allocator);
     defer arena.deinit();
 
-    try sql_query.bins.addOrUpdate(ctx.db, arena.allocator(), &model);
+    try sql_query.bins.addOrUpdate(ctx.db, arena.allocator(), &bin);
 
-    try res.json(model, .{});
+    try res.json(bin, .{});
 }
 
 fn inspectBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
