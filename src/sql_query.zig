@@ -4,11 +4,11 @@ const sqlite = @import("sqlite");
 
 const models = @import("models.zig");
 
-pub const requests = struct {
-    pub fn add(db: *sqlite.Db, allocator: std.mem.Allocator, model: *models.Request) !void {
+pub const captures = struct {
+    pub fn add(db: *sqlite.Db, allocator: std.mem.Allocator, model: *models.Capture) !void {
         const query =
             \\INSERT INTO
-            \\requests(id, bin, method, remote_addr, headers, query, body, time)
+            \\captures(id, bin, method, remote_addr, headers, query, body, time)
             \\VALUES(?, ?, ?, ?, ?, ?, ?, ?)
         ;
 
@@ -20,10 +20,10 @@ pub const requests = struct {
         model.id = db.getLastInsertRowID();
     }
 
-    pub fn fetchOrderedAsc(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, options: models.PageParams) ![]models.Request {
+    pub fn fetchOrderedAsc(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, options: models.PageParams) ![]models.Capture {
         const query =
             \\SELECT id, bin, method, remote_addr, headers, query, body, time
-            \\FROM requests
+            \\FROM captures
             \\WHERE bin = ?
             \\ORDER BY time ASC
             \\LIMIT $limit OFFSET $offset
@@ -32,13 +32,13 @@ pub const requests = struct {
         var stmt = try db.prepare(query);
         defer stmt.deinit();
 
-        return stmt.all(models.Request, allocator, .{}, .{ .bin = bin, .limit = options.limit, .offset = options.offset });
+        return stmt.all(models.Capture, allocator, .{}, .{ .bin = bin, .limit = options.limit, .offset = options.offset });
     }
 
-    pub fn fetchOrderedDesc(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, options: models.PageParams) ![]models.Request {
+    pub fn fetchOrderedDesc(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, options: models.PageParams) ![]models.Capture {
         const query =
             \\SELECT id, bin, method, remote_addr, headers, query, body, time
-            \\FROM requests
+            \\FROM captures
             \\WHERE bin = ?
             \\ORDER BY time DESC
             \\LIMIT $limit OFFSET $offset
@@ -47,36 +47,36 @@ pub const requests = struct {
         var stmt = try db.prepare(query);
         defer stmt.deinit();
 
-        return stmt.all(models.Request, allocator, .{}, .{ .bin = bin, .limit = options.limit, .offset = options.offset });
+        return stmt.all(models.Capture, allocator, .{}, .{ .bin = bin, .limit = options.limit, .offset = options.offset });
     }
 
-    pub fn get(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, request: i64) !?models.Request {
+    pub fn get(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, capture: i64) !?models.Capture {
         const query =
             \\SELECT id, bin, method, remote_addr, headers, query, body, time
-            \\FROM requests
+            \\FROM captures
             \\WHERE id = ? AND bin = ?
         ;
 
         var stmt = try db.prepare(query);
         defer stmt.deinit();
 
-        return stmt.oneAlloc(models.Request, allocator, .{}, .{ .id = request, .bin = bin });
+        return stmt.oneAlloc(models.Capture, allocator, .{}, .{ .id = capture, .bin = bin });
     }
 
-    pub fn delete(db: *sqlite.Db, bin: i64, request: i64) !void {
+    pub fn delete(db: *sqlite.Db, bin: i64, capture: i64) !void {
         const query =
-            \\DELETE FROM requests WHERE id = ? AND bin = ?
+            \\DELETE FROM captures WHERE id = ? AND bin = ?
         ;
 
         var stmt = try db.prepare(query);
         defer stmt.deinit();
 
-        try stmt.exec(.{}, .{ .id = request, .bin = bin });
+        try stmt.exec(.{}, .{ .id = capture, .bin = bin });
     }
 
     pub fn clear(db: *sqlite.Db, bin: i64) !void {
         const query =
-            \\DELETE FROM requests WHERE bin = ?
+            \\DELETE FROM captures WHERE bin = ?
         ;
 
         var stmt = try db.prepare(query);
@@ -87,7 +87,7 @@ pub const requests = struct {
 
     pub fn count(db: *sqlite.Db, bin: i64) !usize {
         const query =
-            \\SELECT COUNT(*) FROM requests WHERE bin = ?
+            \\SELECT COUNT(*) FROM captures WHERE bin = ?
         ;
 
         var stmt = try db.prepare(query);

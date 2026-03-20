@@ -82,7 +82,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
               </div>
               <div class="modal-body">
-                <p>Do you really want to <b>delete the bin and all the requests it captures</b>?</p>
+                <p>Do you really want to <b>delete the bin and all the accesses it captured</b>?</p>
                 <p class="text-danger"><b>The action is IRREVERSIBLE!!!</b></p>
               </div>
               <div class="modal-footer">
@@ -94,21 +94,21 @@
           </div>
         </div>
 
-        <!-- Request Deleting Confirmation Dialog -->
-        <div class="modal fade" id="deleteRequestDialog" tarequestdex="-1">
+        <!-- Capture Deleting Confirmation Dialog -->
+        <div class="modal fade" id="deleteCaptureDialog" tarequestdex="-1">
           <div class="modal-dialog">
             <div class="modal-content">
               <div class="modal-header">
-                <h1 class="modal-title fs-5">Delete Request</h1>
+                <h1 class="modal-title fs-5">Delete Capture</h1>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
               </div>
               <div class="modal-body">
-                <p>Do you really want to <b>delete the request</b>?</p>
+                <p>Do you really want to <b>delete the capture</b>?</p>
                 <p class="text-danger"><b>The action is IRREVERSIBLE!!!</b></p>
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-danger" @click="deleteRequest()"
+                <button type="button" class="btn btn-danger" @click="deleteCapture()"
                   data-bs-dismiss="modal">Delete</button>
               </div>
             </div>
@@ -124,7 +124,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
               </div>
               <div class="modal-body">
-                <p>Do you really want to <b>clear all captured requests of the bin</b>?</p>
+                <p>Do you really want to <b>clear all captures of the bin</b>?</p>
                 <p class="text-danger"><b>The action is IRREVERSIBLE!!!</b></p>
               </div>
               <div class="modal-footer">
@@ -231,8 +231,8 @@
         </header>
 
         <main class="container mt-4 mt-md-5">
-          <!-- Initialize Requests Page Updater -->
-          <div x-init="initRequestPageUpdater()"></div>
+          <!-- Initialize Captures Page Updater -->
+          <div x-init="initCapturePageUpdater()"></div>
 
           <!-- Bin Component -->
           <template x-if="activeBin">
@@ -281,10 +281,10 @@
                 <div class="mb-2">
                   <span class="fs-3 fw-medium">Allowed IPs</span>
                   <span class="ms-3 badge text-bg-success" data-bs-toggle="tooltip" data-bs-placement="top"
-                    data-bs-title="Capture requests from IPs specified below only"
+                    data-bs-title="Capture accesses from IPs specified below only"
                     x-show="activeBin.ips">Activated</span>
                   <span class="ms-3 badge text-bg-warning" data-bs-toggle="tooltip" data-bs-placement="top"
-                    data-bs-title="Capture all requests from any source" x-show="!activeBin.ips">Unset</span>
+                    data-bs-title="Capture all accesses from any source" x-show="!activeBin.ips">Unset</span>
                 </div>
                 <template x-if="activeBin.ips">
                   <ul class="list-group list-group">
@@ -295,16 +295,16 @@
                 </template>
               </div>
 
-              <!-- Requests -->
+              <!-- Captures -->
               <div class="mt-5">
                 <div class="d-md-flex justify-content-md-between align-items-center mb-2">
-                  <div class="fs-3 fw-medium mb-2 mb-md-0">Requests</div>
+                  <div class="fs-3 fw-medium mb-2 mb-md-0">Captures</div>
 
                   <div class="row row-cols-md-auto g-2 align-items-center">
                     <!-- Decending Switch -->
                     <div class="col-12">
                       <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" switch x-model="requestConfig.desc">
+                        <input class="form-check-input" type="checkbox" switch x-model="captureConfig.desc">
                         <label class="form-check-label">
                           Descending
                         </label>
@@ -313,7 +313,7 @@
 
                     <!-- Page Size Selector -->
                     <div class="col-12">
-                      <select class="form-select form-select-inline" x-model="requestConfig.limit">
+                      <select class="form-select form-select-inline" x-model="captureConfig.limit">
                         <template x-for="limit in [10, 20, 50, 100]">
                           <option :value="limit"><span x-text="limit"></span> / Page</option>
                         </template>
@@ -323,23 +323,23 @@
                 </div>
 
                 <!-- Table -->
-                <div class="accordion mt-2" x-id="['request-detail']">
-                  <template x-for="request in requests.data" :key="request.id">
+                <div class="accordion mt-2" x-id="['capture-detail']">
+                  <template x-for="capture in captures.data" :key="capture.id">
                     <div class="accordion-item">
                       <!-- Header (Summary) -->
                       <div class="accordion-header">
                         <button class="accordion-button py-2 collapsed" type="button" data-bs-toggle="collapse"
-                          :data-bs-target="`#${$id('request-detail', request.id)}`">
+                          :data-bs-target="`#${$id('capture-detail', capture.id)}`">
                           <div class="row w-100">
-                            <div class="col-md-4" x-text="timestampToDate(request.time).toLocaleString()"></div>
-                            <div class="col-md-2" x-text="request.method"></div>
-                            <div class="col-md-6" x-text="request.remote_addr"></div>
+                            <div class="col-md-4" x-text="timestampToDate(capture.time).toLocaleString()"></div>
+                            <div class="col-md-2" x-text="capture.method"></div>
+                            <div class="col-md-6" x-text="capture.remote_addr"></div>
                           </div>
                         </button>
                       </div>
 
                       <!-- Collapsed Body (Detail)-->
-                      <div class="accordion-collapse collapse" :id="$id('request-detail', request.id)">
+                      <div class="accordion-collapse collapse" :id="$id('capture-detail', capture.id)">
                         <div class="accordion-body pt-3 pb-1">
                           <div class="row">
                             <!-- Left Grid (Headers & Query) -->
@@ -347,7 +347,7 @@
                               <!-- Headers -->
                               <h5 class="mb-3">Headers</h5>
                               <ul class="list-group mb-3" style="font-size: .9rem"
-                                x-data="{ headers: request.headers ? Object.entries(request.headers) : [] }">
+                                x-data="{ headers: capture.headers ? Object.entries(capture.headers) : [] }">
                                 <template x-if="headers.length === 0">
                                   <li class="list-group-item">
                                     No headers
@@ -371,7 +371,7 @@
                               <!-- Query -->
                               <h5 class="mb-3 mt-3">Query</h5>
                               <ul class="list-group mb-3" style="font-size: .9rem"
-                                x-data="{ query: request.query ? Object.entries(request.query) : [] }">
+                                x-data="{ query: capture.query ? Object.entries(capture.query) : [] }">
                                 <template x-if="query.length === 0">
                                   <li class="list-group-item">
                                     No query parameters
@@ -399,7 +399,7 @@
                               <!-- Body -->
                               <h5 class="mb-3">Body</h5>
                               <div class="border px-3 py-2 mb-3">
-                                <pre class="mb-0" x-html="hljs.highlightAuto(renderBody(request.body)).value"></pre>
+                                <pre class="mb-0" x-html="hljs.highlightAuto(renderBody(capture.body)).value"></pre>
                               </div>
                             </div>
                           </div>
@@ -407,7 +407,7 @@
                           <!-- Actions -->
                           <div class="mb-3">
                             <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal"
-                              data-bs-target="#deleteRequestDialog" @click="activeRequest = request">Delete</button>
+                              data-bs-target="#deleteCaptureDialog" @click="activeCapture = capture">Delete</button>
                           </div>
                         </div>
                       </div>
@@ -419,25 +419,25 @@
                 <nav class="mt-3">
                   <ul class="pagination">
                     <!-- First Page -->
-                    <li class="page-item"><a class="page-link" href="#" @click="requestPage = 0">&laquo;</a>
+                    <li class="page-item"><a class="page-link" href="#" @click="capturePage = 0">&laquo;</a>
                     </li>
                     <!-- Previous Page -->
-                    <li class="page-item" x-show="requestPage > 1"><a class="page-link" href="#"
-                        @click="requestPage -= 2">...</a>
+                    <li class="page-item" x-show="capturePage > 1"><a class="page-link" href="#"
+                        @click="capturePage -= 2">...</a>
                     </li>
-                    <li class="page-item" x-show="requestPage > 0"><a class="page-link" href="#" x-text="requestPage"
-                        @click="requestPage--"></a></li>
+                    <li class="page-item" x-show="capturePage > 0"><a class="page-link" href="#" x-text="capturePage"
+                        @click="capturePage--"></a></li>
                     <!-- Current Page -->
-                    <li class="page-item"><a class="page-link active" href="#" x-text="requestPage + 1"></a></li>
+                    <li class="page-item"><a class="page-link active" href="#" x-text="capturePage + 1"></a></li>
                     <!-- Next Page -->
-                    <li class="page-item" x-show="requestPage < requests.pages - 1"><a class="page-link" href="#"
-                        x-text="requestPage + 2" @click="requestPage++"></a></li>
-                    <li class="page-item" x-show="requestPage < requests.pages - 2"><a class="page-link" href="#"
-                        @click="requestPage += 2">...</a>
+                    <li class="page-item" x-show="capturePage < captures.pages - 1"><a class="page-link" href="#"
+                        x-text="capturePage + 2" @click="capturePage++"></a></li>
+                    <li class="page-item" x-show="capturePage < captures.pages - 2"><a class="page-link" href="#"
+                        @click="capturePage += 2">...</a>
                     </li>
                     <!-- Last Page -->
                     <li class="page-item"><a class="page-link" href="#"
-                        @click="requestPage = Math.max(0, requests.pages - 1)">&raquo;</a></li>
+                        @click="capturePage = Math.max(0, captures.pages - 1)">&raquo;</a></li>
                   </ul>
                 </nav>
               </div>
@@ -481,7 +481,7 @@
      */
 
     /**
-     * @typedef {Object} RequestData
+     * @typedef {Object} Capture
      * @property {number} id
      * @property {number} bin
      * @property {string} method
@@ -528,13 +528,13 @@
 
       /** @type {Bin?} */
       activeBin: null,
-      /** @type {RequestData?} */
-      activeRequest: null,
+      /** @type {Capture?} */
+      activeCapture: null,
 
       /** @type {Bin[]} */
       bins: [],
 
-      requestConfig: {
+      captureConfig: {
         /** @type {number} */
         limit: 10,
         /** @type {boolean} */
@@ -542,14 +542,14 @@
       },
 
       /** @type {number} */
-      requestPage: 0,
+      capturePage: 0,
 
-      requests: {
+      captures: {
         /** @type {number} */
         pages: 0,
         /** @type {number} */
         total: 0,
-        /** @type {RequestData[]} */
+        /** @type {Capture[]} */
         data: [],
       },
 
@@ -636,24 +636,24 @@
       /**
        * @returns {Promise<void>}
        */
-      async loadRequestPage() {
+      async loadCapturePage() {
         if (this.activeBin === null) return;
 
-        const offset = this.requestPage * this.requestConfig.limit;
+        const offset = this.capturePage * this.captureConfig.limit;
 
-        const url = new URL(`/api/bins/${encodeURI(this.activeBin.name)}/requests`, window.location.origin);
+        const url = new URL(`/api/bins/${encodeURI(this.activeBin.name)}/captures`, window.location.origin);
         url.searchParams.append("offset", offset.toString());
-        url.searchParams.append("limit", this.requestConfig.limit.toString());
+        url.searchParams.append("limit", this.captureConfig.limit.toString());
 
-        if (this.requestConfig.desc) url.searchParams.append("desc", "true");
+        if (this.captureConfig.desc) url.searchParams.append("desc", "true");
 
         const resp = await this.fetch(url);
-        /** @type {Page<RequestData>} */
+        /** @type {Page<Capture>} */
         const body = await resp.json();
 
-        this.requests.total = body.total;
-        this.requests.pages = Math.ceil(body.total / this.requestConfig.limit);
-        this.requests.data = body.data;
+        this.captures.total = body.total;
+        this.captures.pages = Math.ceil(body.total / this.captureConfig.limit);
+        this.captures.data = body.data;
       },
 
       /**
@@ -676,7 +676,7 @@
       async clearBin() {
         if (this.activeBin === null) return;
 
-        await this.fetch(`/api/bins/${encodeURI(this.activeBin.name)}/requests`, { method: "DELETE" });
+        await this.fetch(`/api/bins/${encodeURI(this.activeBin.name)}/captures`, { method: "DELETE" });
 
         this.notify(`Bin '${this.activeBin.name}' has been cleared successfully.`, "success");
 
@@ -686,15 +686,15 @@
       /**
        * @returns {void}
        */
-      initRequestPageUpdater() {
+      initCapturePageUpdater() {
         const reload = () => {
-          this.requestPage = 0;
-          this.loadRequestPage();
+          this.capturePage = 0;
+          this.loadCapturePage();
         };
 
         this.$watch('activeBin', reload);
-        this.$watch('requestConfig', reload);
-        this.$watch('requestPage', () => this.loadRequestPage());
+        this.$watch('captureConfig', reload);
+        this.$watch('capturePage', () => this.loadCapturePage());
       },
 
       /**
@@ -912,15 +912,15 @@
       /**
        * @returns {Promise<void>}
        */
-      async deleteRequest() {
-        if (this.activeBin === null || this.activeRequest === null) return;
+      async deleteCapture() {
+        if (this.activeBin === null || this.activeCapture === null) return;
 
-        await this.fetch(`/api/bins/${encodeURI(this.activeBin.name)}/requests/${this.activeRequest.id}`, { method: "DELETE" });
+        await this.fetch(`/api/bins/${encodeURI(this.activeBin.name)}/captures/${this.activeCapture.id}`, { method: "DELETE" });
 
-        this.notify(`Request has been deleted successfully.`, "success");
+        this.notify(`Capture has been deleted successfully.`, "success");
 
-        this.activeRequest = null;
-        await this.loadRequestPage();
+        this.activeCapture = null;
+        await this.loadCapturePage();
       }
     });
   </script>

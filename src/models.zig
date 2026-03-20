@@ -107,7 +107,7 @@ pub const StringKeyValue = struct {
     }
 };
 
-pub const Request = struct {
+pub const Capture = struct {
     id: ?i64 = null,
 
     bin: i64,

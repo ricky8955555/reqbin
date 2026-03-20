@@ -32,12 +32,12 @@ pub fn init(ctx: *Context, config: httpz.Config) !App {
     router.put("/api/bins", createOrUpdateBin, .{});
     router.get("/api/bins/:bin", inspectBin, .{});
     router.delete("/api/bins/:bin", deleteBin, .{});
-    router.get("/api/bins/:bin/requests", viewBin, .{});
-    router.delete("/api/bins/:bin/requests", clearBin, .{});
-    router.get("/api/bins/:bin/requests/:request", inspectRequest, .{});
-    router.delete("/api/bins/:bin/requests/:request", deleteRequest, .{});
+    router.get("/api/bins/:bin/captures", viewBin, .{});
+    router.delete("/api/bins/:bin/captures", clearBin, .{});
+    router.get("/api/bins/:bin/captures/:capture", inspectCapture, .{});
+    router.delete("/api/bins/:bin/captures/:capture", deleteCapture, .{});
 
-    router.all("/access/:bin", catchRequest, .{});
+    router.all("/access/:bin", captureAccess, .{});
 
     router.get("/", serveDashboard, .{});
 
@@ -58,7 +58,7 @@ fn respondError(res: *httpz.Response, status: std.http.Status) void {
     res.content_type = .TEXT;
 }
 
-fn catchRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
+fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     const bin_name = req.param("bin").?;
 
     var arena = std.heap.ArenaAllocator.init(ctx.allocator);
@@ -100,7 +100,7 @@ fn catchRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void 
     const headers = if (bin.headers) models.StringKeyValue{ .map = req.headers.* } else null;
     const body = if (bin.body) req.body() else null;
 
-    var model = models.Request{
+    var model = models.Capture{
         .bin = bin.id.?,
         .method = @tagName(req.method),
         .remote_addr = remote_addr_str,
@@ -110,7 +110,7 @@ fn catchRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void 
         .time = .{ .value = zdt.Datetime.nowUTC() },
     };
 
-    try sql_query.requests.add(ctx.db, arena.allocator(), &model);
+    try sql_query.captures.add(ctx.db, arena.allocator(), &model);
 
     try res.json(model, .{});
 }
@@ -179,15 +179,15 @@ fn viewBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     var arena = std.heap.ArenaAllocator.init(ctx.allocator);
     defer arena.deinit();
 
-    const total = try sql_query.requests.count(ctx.db, bin);
-    const requests = requests: {
+    const total = try sql_query.captures.count(ctx.db, bin);
+    const captures = captures: {
         if (query.has("desc")) {
-            break :requests try sql_query.requests.fetchOrderedDesc(ctx.db, arena.allocator(), bin, options);
+            break :captures try sql_query.captures.fetchOrderedDesc(ctx.db, arena.allocator(), bin, options);
         } else {
-            break :requests try sql_query.requests.fetchOrderedAsc(ctx.db, arena.allocator(), bin, options);
+            break :captures try sql_query.captures.fetchOrderedAsc(ctx.db, arena.allocator(), bin, options);
         }
     };
-    const page = models.Page(models.Request){ .total = total, .count = requests.len, .data = requests };
+    const page = models.Page(models.Capture){ .total = total, .count = captures.len, .data = captures };
 
     try res.json(page, .{});
 }
@@ -290,19 +290,19 @@ fn clearBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
         return;
     };
 
-    try sql_query.requests.clear(ctx.db, bin);
+    try sql_query.captures.clear(ctx.db, bin);
 
     res.setStatus(.no_content);
 }
 
-fn inspectRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
+fn inspectCapture(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     if (!try authorize(ctx, req)) {
         respondError(res, .unauthorized);
         return;
     }
 
     const bin_name = req.param("bin").?;
-    const request_id = std.fmt.parseInt(i64, req.param("request").?, 10) catch {
+    const capture_id = std.fmt.parseInt(i64, req.param("capture").?, 10) catch {
         respondError(res, .unprocessable_entity);
         return;
     };
@@ -315,22 +315,22 @@ fn inspectRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !voi
         return;
     };
 
-    const request = try sql_query.requests.get(ctx.db, arena.allocator(), bin, request_id) orelse {
+    const capture = try sql_query.captures.get(ctx.db, arena.allocator(), bin, capture_id) orelse {
         respondError(res, .not_found);
         return;
     };
 
-    try res.json(request, .{});
+    try res.json(capture, .{});
 }
 
-fn deleteRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
+fn deleteCapture(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     if (!try authorize(ctx, req)) {
         respondError(res, .unauthorized);
         return;
     }
 
     const bin_name = req.param("bin").?;
-    const request = std.fmt.parseInt(i64, req.param("request").?, 10) catch {
+    const capture = std.fmt.parseInt(i64, req.param("capture").?, 10) catch {
         respondError(res, .unprocessable_entity);
         return;
     };
@@ -340,7 +340,7 @@ fn deleteRequest(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
         return;
     };
 
-    try sql_query.requests.delete(ctx.db, bin, request);
+    try sql_query.captures.delete(ctx.db, bin, capture);
 
     res.setStatus(.no_content);
 }
