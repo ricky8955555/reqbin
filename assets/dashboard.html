@@ -207,18 +207,6 @@
                       </template>
                     </div>
                   </div>
-
-                  <!-- Content Type Settings -->
-                  <div class="mb-3">
-                    <label class="form-label">Content Type</label>
-                    <select class="form-select" x-model="updatingBin.contentType">
-                      <option value="">Unspecified</option>
-                      <template x-for="contentType in validContentTypes">
-                        <option :value="contentType" x-text="contentType"
-                          :selected="updatingBin.contentType === contentType"></option>
-                      </template>
-                    </select>
-                  </div>
                 </div>
               </template>
               <div class="modal-footer">
@@ -286,9 +274,6 @@
                       data-bs-placement="top" data-bs-title="Allowed Method"></span>
                   </span>
                 </template>
-                <span class="badge text-bg-success"
-                  x-text="activeBin.content_type ? activeBin.content_type.toUpperCase() : 'Unspecified'"
-                  data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Content Type"></span>
               </div>
 
               <!-- Allowed IPs -->
@@ -479,7 +464,6 @@
      * @property {boolean} headers
      * @property {string[]?} ips
      * @property {string[]?} methods
-     * @property {string?} content_type
      */
 
     /**
@@ -494,15 +478,7 @@
      * @property {string} newIP
      * @property {boolean} allowAnyMethod
      * @property {string[]} methods
-     * @property {string} contentType
      */
-
-    /**
-      * @typedef {Object} RequestBody
-      * @property {string | undefined} raw
-      * @property {any | undefined} form
-      * @property {any | undefined} json
-      */
 
     /**
      * @typedef {Object} RequestData
@@ -512,7 +488,7 @@
      * @property {string} remote_addr
      * @property {any} headers
      * @property {any} query
-     * @property {RequestBody} body
+     * @property {string?} body
      * @property {number} time
      */
 
@@ -752,16 +728,12 @@
       },
 
       /**
-       * @param {RequestBody} body
+       * @param {string} body
        * @returns {string}
        */
       renderBody(body) {
-        if (body === null) return "(empty)";
-
-        if (body.form !== undefined) return this.renderPrettyJson(body.form);
-        if (body.json !== undefined) return this.renderPrettyJson(body.json);
-        if (body.raw !== undefined) return body.raw === "" ? "(empty)" : body.raw;
-        return "(empty)";
+        if (body === null || body === "") return "(empty)";
+        return body;
       },
 
       /**
@@ -822,7 +794,6 @@
             ips: this.activeBin.ips !== null ? [...this.activeBin.ips] : [],
             allowAnyMethod: this.activeBin.methods === null,
             methods: this.activeBin.methods !== null ? [...this.activeBin.methods] : [],
-            contentType: this.activeBin.content_type ?? "",
             newIP: "",
           }
         } else {
@@ -836,7 +807,6 @@
             ips: [],
             allowAnyMethod: true,
             methods: [],
-            contentType: "",
             newIP: "",
           };
         }
@@ -877,7 +847,6 @@
           headers: this.updatingBin.headers,
           ips: this.updatingBin.allowAnyIP ? null : this.updatingBin.ips,
           methods: this.updatingBin.allowAnyMethod ? null : this.updatingBin.methods,
-          content_type: this.updatingBin.contentType === "" ? null : this.updatingBin.contentType,
         };
 
         await this.fetch("/api/bins", {

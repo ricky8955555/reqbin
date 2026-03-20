@@ -107,88 +107,6 @@ pub const StringKeyValue = struct {
     }
 };
 
-pub const ContentType = enum(u2) {
-    raw = 0,
-    form = 1,
-    json = 2,
-
-    pub const BaseType = u2;
-
-    pub fn bindField(self: ContentType, _: Allocator) !BaseType {
-        return @intFromEnum(self);
-    }
-
-    pub fn readField(_: Allocator, value: BaseType) !ContentType {
-        return @enumFromInt(value);
-    }
-};
-
-pub const Body = struct {
-    const InnerBody = union(enum) {
-        raw: []const u8,
-        form: StringKeyValue,
-        json: JsonValue,
-    };
-
-    value: InnerBody,
-
-    pub const BaseType = []const u8;
-
-    pub fn bindField(self: Body, allocator: Allocator) !BaseType {
-        var out = std.Io.Writer.Allocating.init(allocator);
-        defer out.deinit();
-
-        var stringify = std.json.Stringify{ .writer = &out.writer };
-        try stringify.write(self);
-
-        return out.toOwnedSlice();
-    }
-
-    pub fn readField(allocator: Allocator, value: BaseType) !Body {
-        const parsed = try std.json.parseFromSlice(Body, allocator, value, .{ .allocate = .alloc_always });
-        return parsed.value;
-    }
-
-    pub fn jsonStringify(self: Body, jws: anytype) !void {
-        try jws.write(self.value);
-    }
-
-    pub fn jsonParse(allocator: Allocator, source: anytype, options: std.json.ParseOptions) std.json.ParseError(@TypeOf(source.*))!Body {
-        const parsed = try std.json.innerParse(InnerBody, allocator, source, options);
-        return .{ .value = parsed };
-    }
-
-    pub fn parseFromRequest(request: *httpz.Request, expected_content_type: ?ContentType) !?Body {
-        const content_type = typ: {
-            if (expected_content_type) |content_type| break :typ content_type;
-
-            const optional_content_type = request.header("content-type");
-
-            if (optional_content_type) |content_type| {
-                if (std.mem.eql(u8, content_type, "application/json")) break :typ .json;
-                if (std.mem.eql(u8, content_type, "application/x-www-form-urlencoded")) break :typ .form;
-            }
-
-            break :typ .raw;
-        };
-
-        switch (content_type) {
-            .json => {
-                const json = try request.jsonValue() orelse return null;
-                return .{ .value = .{ .json = json } };
-            },
-            .form => {
-                const form = try request.formData();
-                return .{ .value = .{ .form = .{ .map = form.* } } };
-            },
-            .raw => {
-                const body = request.body() orelse return null;
-                return .{ .value = .{ .raw = body } };
-            },
-        }
-    }
-};
-
 pub const Request = struct {
     id: ?i64 = null,
 
@@ -200,7 +118,7 @@ pub const Request = struct {
     headers: ?StringKeyValue,
 
     query: ?StringKeyValue,
-    body: ?Body,
+    body: ?[]const u8,
 
     time: Timestamp,
 };
@@ -310,6 +228,4 @@ pub const Bin = struct {
 
     ips: ?Array(IpString) = null,
     methods: ?Array(httpz.Method) = null,
-
-    content_type: ?ContentType = null,
 };
