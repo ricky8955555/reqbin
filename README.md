@@ -108,11 +108,41 @@ Then access the application via http://localhost:7280.
     ],
     "methods": [            // Restrict requests' methods
         "POST"              // Possible values: GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, OTHER
-    ]
+    ],
+    "responding": {         // Response settings (refer to `Responding` model)
+        "capture": {}
+    }
 },
 ```
 
-#### Request
+#### Responding
+
+##### capture
+
+Respond captured info in JSON.
+
+```jsonc
+{
+    "capture": {}
+}
+```
+
+##### static
+
+Make static response.
+
+```jsonc
+{
+    "static": {
+        "headers": {  // Headers of response
+            "Content-Type": "application/json"
+        },
+        "body": "{\"foo\": \"bar\"}"
+    }
+}
+```
+
+#### Capture
 
 ```jsonc
 {
