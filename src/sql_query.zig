@@ -1,11 +1,12 @@
 const std = @import("std");
+const Allocator = std.mem.Allocator;
 
 const sqlite = @import("sqlite");
 
 const models = @import("models.zig");
 
 pub const captures = struct {
-    pub fn add(db: *sqlite.Db, allocator: std.mem.Allocator, model: *models.Capture) !void {
+    pub fn add(db: *sqlite.Db, allocator: Allocator, model: *models.Capture) !void {
         const query =
             \\INSERT INTO
             \\captures(id, bin, method, remote_addr, headers, query, body, time)
@@ -20,7 +21,7 @@ pub const captures = struct {
         model.id = db.getLastInsertRowID();
     }
 
-    pub fn fetchOrderedAsc(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, options: models.PageParams) ![]models.Capture {
+    pub fn fetchOrderedAsc(db: *sqlite.Db, allocator: Allocator, bin: i64, options: models.PageParams) ![]models.Capture {
         const query =
             \\SELECT id, bin, method, remote_addr, headers, query, body, time
             \\FROM captures
@@ -35,7 +36,7 @@ pub const captures = struct {
         return stmt.all(models.Capture, allocator, .{}, .{ .bin = bin, .limit = options.limit, .offset = options.offset });
     }
 
-    pub fn fetchOrderedDesc(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, options: models.PageParams) ![]models.Capture {
+    pub fn fetchOrderedDesc(db: *sqlite.Db, allocator: Allocator, bin: i64, options: models.PageParams) ![]models.Capture {
         const query =
             \\SELECT id, bin, method, remote_addr, headers, query, body, time
             \\FROM captures
@@ -50,7 +51,7 @@ pub const captures = struct {
         return stmt.all(models.Capture, allocator, .{}, .{ .bin = bin, .limit = options.limit, .offset = options.offset });
     }
 
-    pub fn get(db: *sqlite.Db, allocator: std.mem.Allocator, bin: i64, capture: i64) !?models.Capture {
+    pub fn get(db: *sqlite.Db, allocator: Allocator, bin: i64, capture: i64) !?models.Capture {
         const query =
             \\SELECT id, bin, method, remote_addr, headers, query, body, time
             \\FROM captures
@@ -99,7 +100,7 @@ pub const captures = struct {
 };
 
 pub const bins = struct {
-    pub fn addOrUpdate(db: *sqlite.Db, allocator: std.mem.Allocator, model: *models.Bin) !void {
+    pub fn addOrUpdate(db: *sqlite.Db, allocator: Allocator, model: *models.Bin) !void {
         const query =
             \\INSERT OR REPLACE INTO
             \\bins(id, name, body, query, header, ips, methods, responding)
@@ -116,7 +117,7 @@ pub const bins = struct {
         }
     }
 
-    pub fn get(db: *sqlite.Db, allocator: std.mem.Allocator, name: []const u8) !?models.Bin {
+    pub fn get(db: *sqlite.Db, allocator: Allocator, name: []const u8) !?models.Bin {
         const query =
             \\SELECT id, name, body, query, header, ips, methods, responding
             \\FROM bins
@@ -140,7 +141,7 @@ pub const bins = struct {
         return stmt.one(i64, .{}, .{ .name = name });
     }
 
-    pub fn fetch(db: *sqlite.Db, allocator: std.mem.Allocator, options: models.PageParams) ![]models.Bin {
+    pub fn fetch(db: *sqlite.Db, allocator: Allocator, options: models.PageParams) ![]models.Bin {
         const query =
             \\SELECT id, name, body, query, header, ips, methods, responding
             \\FROM bins
