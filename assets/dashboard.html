@@ -851,10 +851,6 @@
 
         await this.fetch("/api/bins", {
           method: "PUT",
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
           body: JSON.stringify(bin),
         });
 
