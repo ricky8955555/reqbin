@@ -58,35 +58,35 @@ Then access the application via http://localhost:7280.
 
 ##### `DELETE /api/bins/:bin`
 
-> Remove a bin and all the requests it captures.
+> Remove a bin and all the captures.
 
-##### `GET /api/bins/:bin/requests`
+##### `GET /api/bins/:bin/captures`
 
-> Fetch all captured requests of a bin.
+> Fetch all captures of a bin.
 > 
-> Returns (`Page[Request]`): The requests with offset and limit specified via page options.
+> Returns (`Page[Capture]`): The captures with offset and limit specified via page options.
 
-##### `DELETE /api/bins/:bin/requests`
+##### `DELETE /api/bins/:bin/captures`
 
-> Clear all captured requests of a bin.
+> Clear all captured accesses of a bin.
 
-##### `GET /api/bins/:bin/requests/:request`
+##### `GET /api/bins/:bin/captures/:capture`
 
-> Inspect a request.
+> Inspect a capture.
 > 
-> Returns (`Request`): The request to inspect.
+> Returns (`Capture`): The capture to inspect.
 
-##### `DELETE /api/bins/:bin/requests/:request`
+##### `DELETE /api/bins/:bin/captures/:capture`
 
-> Remove a request.
+> Remove a capture.
 
 #### Capture
 
 ##### `ANY /access/:bin`
 
-> Any request to this route will be captured into specific bin, then the captured data will be returned to the client.
+> Any access to this route will be captured into specific bin, then the captured data will be returned to the client.
 > 
-> Returns (`Request`): The request info captured.
+> Returns (`Capture`): The access info captured.
 
 ### Params
 
@@ -116,14 +116,14 @@ Then access the application via http://localhost:7280.
 
 ```jsonc
 {
-    "id": 1,                            // ID of the request in database
-    "bin": 1,                           // Bin ID the request belongs to
+    "id": 1,                            // ID of the capture in database
+    "bin": 1,                           // Bin ID the capture belongs to
     "method": "POST",                   // Request method
     "remote_addr": "127.0.0.1:23333",   // Client address
     "headers": null,                    // Headers (always null if disabled)
     "query": {},                        // Query params (always null if disabled)
-    "body": "foobar",                   // Body (null if the function is disabled or the request has no body)
-    "time": 1301965440                  // UTC unix timestamp of the request
+    "body": "foobar",                   // Body (null if the function is disabled or the capture has no body)
+    "time": 1301965440                  // UTC unix timestamp of the capture
 }
 ```
 
