@@ -39,41 +39,38 @@ pub const Timestamp = struct {
     }
 };
 
-pub const StringKeyValue = struct {
-    map: httpz.key_value.StringKeyValue,
-
-    pub const BaseType = []const u8;
-
-    pub fn bindField(self: StringKeyValue, allocator: Allocator) !BaseType {
-        var out = std.Io.Writer.Allocating.init(allocator);
-        defer out.deinit();
-
-        var stringify = std.json.Stringify{ .writer = &out.writer };
-        try stringify.write(self);
-
-        return out.toOwnedSlice();
-    }
-
-    pub fn readField(allocator: Allocator, value: BaseType) !StringKeyValue {
-        const parsed = try std.json.parseFromSlice(StringKeyValue, allocator, value, .{ .allocate = .alloc_always });
-        return parsed.value;
-    }
+pub const StringKeyValue = union(enum) {
+    std: std.StringArrayHashMapUnmanaged([]const u8),
+    httpz: httpz.key_value.StringKeyValue,
 
     pub fn jsonStringify(self: StringKeyValue, jws: anytype) !void {
         try jws.beginObject();
-        var it = self.map.iterator();
-        while (it.next()) |kv| {
-            try jws.objectField(kv.key);
-            try jws.write(kv.value);
+
+        switch (self) {
+            .std => |map| {
+                var it = map.iterator();
+                while (it.next()) |kv| {
+                    try jws.objectField(kv.key_ptr.*);
+                    try jws.write(kv.value_ptr.*);
+                }
+            },
+            .httpz => |map| {
+                var it = map.iterator();
+                while (it.next()) |kv| {
+                    try jws.objectField(kv.key);
+                    try jws.write(kv.value);
+                }
+            },
         }
+
         try jws.endObject();
     }
 
     pub fn jsonParse(allocator: Allocator, source: anytype, options: std.json.ParseOptions) std.json.ParseError(@TypeOf(source.*))!StringKeyValue {
         if (.object_begin != try source.next()) return error.UnexpectedToken;
 
-        var kvs = try std.ArrayList(struct { key: []const u8, value: []const u8 }).initCapacity(allocator, 32);
-        defer kvs.deinit(allocator);
+        var map = std.StringArrayHashMapUnmanaged([]const u8){};
+        errdefer map.deinit(allocator);
 
         while (true) {
             const key_token = try source.nextAlloc(allocator, options.allocate.?);
@@ -82,7 +79,7 @@ pub const StringKeyValue = struct {
                     const value_token = try source.nextAlloc(allocator, options.allocate.?);
                     switch (value_token) {
                         inline .string, .allocated_string => |value| {
-                            try kvs.append(allocator, .{ .key = key, .value = value });
+                            try map.put(allocator, key, value);
                         },
                         else => return error.UnexpectedToken,
                     }
@@ -92,18 +89,14 @@ pub const StringKeyValue = struct {
             }
         }
 
-        var map = try httpz.key_value.StringKeyValue.init(allocator, kvs.items.len);
-        errdefer map.deinit(allocator);
-
-        for (kvs.items) |item| {
-            map.add(item.key, item.value);
-        }
-
-        return .{ .map = map };
+        return .{ .std = map };
     }
 
     pub fn deinit(self: StringKeyValue, allocator: Allocator) void {
-        self.map.deinit(allocator);
+        switch (self) {
+            .std => |map| map.deinit(allocator),
+            .httpz => |map| map.deinit(allocator),
+        }
     }
 };
 
@@ -115,9 +108,9 @@ pub const Capture = struct {
     method: []const u8,
     remote_addr: []const u8,
 
-    headers: ?StringKeyValue,
+    headers: ?JsonField(StringKeyValue),
 
-    query: ?StringKeyValue,
+    query: ?JsonField(StringKeyValue),
     body: ?[]const u8,
 
     time: Timestamp,
@@ -253,7 +246,7 @@ fn JsonField(comptime ValueType: type) type {
 
 pub const Responding = union(enum) {
     pub const Static = struct {
-        headers: StringKeyValue,
+        headers: JsonField(StringKeyValue),
         body: []const u8,
     };
 

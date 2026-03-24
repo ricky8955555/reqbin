@@ -96,17 +96,13 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
         }
     }
 
-    const query = if (bin.query) models.StringKeyValue{ .map = (try req.query()).* } else null;
-    const headers = if (bin.headers) models.StringKeyValue{ .map = req.headers.* } else null;
-    const body = if (bin.body) req.body() else null;
-
     var capture = models.Capture{
         .bin = bin.id.?,
         .method = @tagName(req.method),
         .remote_addr = remote_addr_str,
-        .headers = headers,
-        .query = query,
-        .body = body,
+        .headers = if (bin.headers) .{ .value = .{ .httpz = req.headers.* } } else null,
+        .query = if (bin.query) .{ .value = .{ .httpz = (try req.query()).* } } else null,
+        .body = if (bin.body) req.body() else null,
         .time = .{ .value = zdt.Datetime.nowUTC() },
     };
 
@@ -114,10 +110,10 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
 
     switch (bin.responding.value) {
         .static => |static| {
-            var it = static.headers.map.iterator();
+            var it = static.headers.value.std.iterator();
 
             while (it.next()) |header| {
-                res.header(header.key, header.value);
+                res.header(header.key_ptr.*, header.value_ptr.*);
             }
 
             const writer = res.writer();
