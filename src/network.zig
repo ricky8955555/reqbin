@@ -29,12 +29,16 @@ pub const Ip4Network = struct {
     }
 
     pub fn parse(network: []const u8) !Ip4Network {
-        const slash_pos = std.mem.indexOfScalar(u8, network, '/') orelse return error.InvalidCharacter;
+        if (std.mem.indexOfScalar(u8, network, '/')) |slash_pos| {
+            const addr = try std.net.Ip4Address.parse(network[0..slash_pos], 0);
+            const prefix_len = try std.fmt.parseInt(u8, network[slash_pos + 1 ..], 10);
 
-        const addr = try std.net.Ip4Address.parse(network[0..slash_pos], 0);
-        const prefix_len = try std.fmt.parseInt(u8, network[slash_pos + 1 ..], 10);
+            return Ip4Network.init(addr, prefix_len);
+        } else {
+            const addr = try std.net.Ip4Address.parse(network, 0);
 
-        return Ip4Network.init(addr, prefix_len);
+            return Ip4Network.init(addr, 32);
+        }
     }
 
     pub fn isHost(self: Ip4Network, host: std.net.Ip4Address) bool {
@@ -72,12 +76,16 @@ pub const Ip6Network = struct {
     }
 
     pub fn parse(network: []const u8) !Ip6Network {
-        const slash_pos = std.mem.indexOfScalar(u8, network, '/') orelse return error.InvalidCharacter;
+        if (std.mem.indexOfScalar(u8, network, '/')) |slash_pos| {
+            const addr = try std.net.Ip6Address.parse(network[0..slash_pos], 0);
+            const prefix_len = try std.fmt.parseInt(u8, network[slash_pos + 1 ..], 10);
 
-        const addr = try std.net.Ip6Address.parse(network[0..slash_pos], 0);
-        const prefix_len = try std.fmt.parseInt(u8, network[slash_pos + 1 ..], 10);
+            return Ip6Network.init(addr, prefix_len);
+        } else {
+            const addr = try std.net.Ip6Address.parse(network, 0);
 
-        return Ip6Network.init(addr, prefix_len);
+            return Ip6Network.init(addr, 128);
+        }
     }
 
     pub fn isHost(self: Ip6Network, host: std.net.Ip6Address) bool {
