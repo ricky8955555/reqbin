@@ -2,17 +2,17 @@ const std = @import("std");
 
 const httpz = @import("httpz");
 
-const net_utils = @import("net.zig");
+const network = @import("network.zig");
 
-inline fn isTrustedProxy(address: std.net.Address, trusted_proxies: []const net_utils.Network) bool {
-    for (trusted_proxies) |network| {
-        if (network.isHost(address)) return true;
+inline fn isTrustedProxy(address: std.net.Address, trusted_proxies: []const network.Network) bool {
+    for (trusted_proxies) |proxy| {
+        if (proxy.isHost(address)) return true;
     }
 
     return false;
 }
 
-pub fn retrieveRemoteAddr(request: *httpz.Request, trusted_proxies: []const net_utils.Network) std.net.Address {
+pub fn retrieveRemoteAddr(request: *httpz.Request, trusted_proxies: []const network.Network) std.net.Address {
     var address = request.address;
 
     if (isTrustedProxy(address, trusted_proxies)) trusted: {

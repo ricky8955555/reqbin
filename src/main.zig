@@ -85,12 +85,12 @@ pub fn main() !void {
 
     const trusted_proxies, const trusted_proxies_allocated = trusted_proxies: {
         if (config.trusted_proxies) |trusted_proxies_str| {
-            var trusted_proxies = try std.ArrayList(reqbin.net.Network).initCapacity(allocator, 16);
+            var trusted_proxies = try std.ArrayList(reqbin.network.Network).initCapacity(allocator, 16);
             defer trusted_proxies.deinit(allocator);
 
             var proxy_iter = std.mem.splitScalar(u8, trusted_proxies_str, ',');
             while (proxy_iter.next()) |proxy| {
-                const network = try reqbin.net.Network.parse(proxy);
+                const network = try reqbin.network.Network.parse(proxy);
                 try trusted_proxies.append(allocator, network);
             }
 

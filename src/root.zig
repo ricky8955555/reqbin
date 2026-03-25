@@ -1,2 +1,2 @@
 pub const App = @import("App.zig");
-pub const net = @import("utils/net.zig");
+pub const network = @import("network.zig");
