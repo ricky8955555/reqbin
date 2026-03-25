@@ -99,18 +99,26 @@ pub const Network = union(enum) {
     ip6: Ip6Network,
 
     pub fn parse(network: []const u8) !Network {
-        const slash_pos = std.mem.indexOfScalar(u8, network, '/') orelse return error.InvalidCharacter;
-
+        const addr, const prefix_len = parse: {
+            if (std.mem.indexOfScalar(u8, network, '/')) |slash_pos| {
         const addr = try std.net.Address.parseIp(network[0..slash_pos], 0);
         const prefix_len = try std.fmt.parseInt(u8, network[slash_pos + 1 ..], 10);
 
+                break :parse .{ addr, prefix_len };
+            } else {
+                const addr = try std.net.Address.parseIp(network, 0);
+
+                break :parse .{ addr, null };
+            }
+        };
+
         switch (addr.any.family) {
             std.posix.AF.INET => {
-                const ip4_network = try Ip4Network.init(addr.in, prefix_len);
+                const ip4_network = try Ip4Network.init(addr.in, prefix_len orelse 32);
                 return .{ .ip4 = ip4_network };
             },
             std.posix.AF.INET6 => {
-                const ip6_network = try Ip6Network.init(addr.in6, prefix_len);
+                const ip6_network = try Ip6Network.init(addr.in6, prefix_len orelse 128);
                 return .{ .ip6 = ip6_network };
             },
             else => unreachable,
