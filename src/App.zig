@@ -110,10 +110,10 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
 
     switch (bin.responding.value) {
         .static => |static| {
-            var it = static.headers.value.std.iterator();
+            var it = static.headers.value.iterator();
 
             while (it.next()) |header| {
-                res.header(header.key_ptr.*, header.value_ptr.*);
+                res.header(header.key, header.value);
             }
 
             const writer = res.writer();

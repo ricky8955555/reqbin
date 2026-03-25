@@ -43,24 +43,43 @@ pub const StringKeyValue = union(enum) {
     std: std.StringArrayHashMapUnmanaged([]const u8),
     httpz: httpz.key_value.StringKeyValue,
 
+    pub const Iterator = union(enum) {
+        std: std.StringArrayHashMapUnmanaged([]const u8).Iterator,
+        httpz: httpz.key_value.StringKeyValue.Iterator,
+
+        const KV = struct {
+            key: []const u8,
+            value: []const u8,
+        };
+
+        pub fn next(self: *Iterator) ?KV {
+            switch (self.*) {
+                .std => |*it| {
+                    const kv = it.next() orelse return null;
+                    return .{ .key = kv.key_ptr.*, .value = kv.value_ptr.* };
+                },
+                .httpz => |*it| {
+                    const kv = it.next() orelse return null;
+                    return .{ .key = kv.key, .value = kv.value };
+                },
+            }
+        }
+    };
+
+    pub fn iterator(self: StringKeyValue) Iterator {
+        switch (self) {
+            .std => |map| return .{ .std = map.iterator() },
+            .httpz => |map| return .{ .httpz = map.iterator() },
+        }
+    }
+
     pub fn jsonStringify(self: StringKeyValue, jws: anytype) !void {
         try jws.beginObject();
 
-        switch (self) {
-            .std => |map| {
-                var it = map.iterator();
-                while (it.next()) |kv| {
-                    try jws.objectField(kv.key_ptr.*);
-                    try jws.write(kv.value_ptr.*);
-                }
-            },
-            .httpz => |map| {
-                var it = map.iterator();
-                while (it.next()) |kv| {
-                    try jws.objectField(kv.key);
-                    try jws.write(kv.value);
-                }
-            },
+        var it = self.iterator();
+        while (it.next()) |kv| {
+            try jws.objectField(kv.key);
+            try jws.write(kv.value);
         }
 
         try jws.endObject();
