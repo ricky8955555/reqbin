@@ -47,7 +47,7 @@ pub const Ip4Network = struct {
     pub fn format(self: Ip4Network, w: *std.Io.Writer) std.Io.Writer.Error!void {
         const nativeAddr = std.mem.bigToNative(u32, self.addr);
         const bytes: *const [4]u8 = @ptrCast(&nativeAddr);
-        try w.print("{d}.{d}.{d}.{d}", .{ bytes[0], bytes[1], bytes[2], bytes[3] });
+        try w.print("{d}.{d}.{d}.{d}/{d}", .{ bytes[0], bytes[1], bytes[2], bytes[3], self.prefix_len });
     }
 
     pub fn isHost(self: Ip4Network, host: std.net.Ip4Address) bool {
@@ -104,7 +104,7 @@ pub const Ip6Network = struct {
         const bytes: *const [16]u8 = @ptrCast(&nativeAddr);
 
         if (std.mem.eql(u8, bytes[0..12], &[_]u8{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff })) {
-            try w.print("::ffff:{d}.{d}.{d}.{d}", .{ bytes[12], bytes[13], bytes[14], bytes[15] });
+            try w.print("::ffff:{d}.{d}.{d}.{d}/{d}", .{ bytes[12], bytes[13], bytes[14], bytes[15], self.prefix_len });
             return;
         }
 
@@ -167,6 +167,8 @@ pub const Ip6Network = struct {
                 try w.writeAll(":");
             }
         }
+
+        try w.print("/{d}", .{self.prefix_len});
     }
 
     pub fn isHost(self: Ip6Network, host: std.net.Ip6Address) bool {
