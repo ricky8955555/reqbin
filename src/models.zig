@@ -297,6 +297,7 @@ pub const Network = struct {
 
 pub const Responding = union(enum) {
     pub const Static = struct {
+        status: u16 = 200,
         headers: JsonField(StringKeyValue),
         body: []const u8,
     };

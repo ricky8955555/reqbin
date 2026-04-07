@@ -109,6 +109,8 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
 
     switch (bin.responding.value) {
         .static => |static| {
+            res.status = static.status;
+
             var it = static.headers.value.iterator();
 
             while (it.next()) |header| {
