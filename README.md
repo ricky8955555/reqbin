@@ -104,7 +104,7 @@ Then access the application via http://localhost:7280.
     "query": true,          // Collect requests' query or not
     "headers": false,       // Collect requests' headers or not
     "ips": [                // Restrict source ip if set, otherwise, the source will not be checked.
-        "127.0.0.1"
+        "127.0.0.1/32"
     ],
     "methods": [            // Restrict requests' methods
         "POST"              // Possible values: GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, OTHER
@@ -134,10 +134,11 @@ Make static response.
 ```jsonc
 {
     "static": {
+        "status": 200,  // Status code of response
         "headers": {  // Headers of response
             "Content-Type": "application/json"
         },
-        "body": "{\"foo\": \"bar\"}"
+        "body": "{\"foo\": \"bar\"}"  // Body of response
     }
 }
 ```
