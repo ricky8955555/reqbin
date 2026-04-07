@@ -78,9 +78,8 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
     };
 
     if (bin.ips) |ips| {
-        for (ips.value) |ip| {
-            const allowed_addr = try std.net.Address.parseIp(ip.value, remote_addr.getPort());
-            if (allowed_addr.eql(remote_addr)) break;
+        for (ips.value) |net| {
+            if (net.value.isHost(remote_addr)) break;
         } else {
             respondError(res, .forbidden);
             return;

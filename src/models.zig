@@ -5,6 +5,8 @@ const JsonValue = std.json.Value;
 const zdt = @import("zdt");
 const httpz = @import("httpz");
 
+const network = @import("network.zig");
+
 pub const Timestamp = struct {
     value: zdt.Datetime,
 
@@ -263,6 +265,36 @@ fn JsonField(comptime ValueType: type) type {
     };
 }
 
+pub const Network = struct {
+    value: network.Network,
+
+    pub const BaseType = []const u8;
+
+    pub fn bindField(self: Network, allocator: Allocator) !BaseType {
+        var buffer = std.Io.Writer.Allocating.init(allocator);
+        try buffer.writer.print("{f}", .{self.value});
+    }
+
+    pub fn readField(allocator: Allocator, value: BaseType) !Network {
+        defer allocator.free(value);
+
+        const parsed = try network.Network.parse(value);
+        return .{ .value = parsed };
+    }
+
+    pub fn jsonStringify(self: Network, jws: anytype) !void {
+        try jws.print("\"{f}\"", .{self.value}); // chars in cidr string is no need to be escaped for json.
+    }
+
+    pub fn jsonParse(allocator: Allocator, source: anytype, options: std.json.ParseOptions) std.json.ParseError(@TypeOf(source.*))!Network {
+        const string = try std.json.innerParse([]const u8, allocator, source, options);
+        defer allocator.free(string);
+
+        const parsed = network.Network.parse(string) catch return error.UnexpectedToken;
+        return .{ .value = parsed };
+    }
+};
+
 pub const Responding = union(enum) {
     pub const Static = struct {
         headers: JsonField(StringKeyValue),
@@ -282,7 +314,7 @@ pub const Bin = struct {
     query: bool = true,
     headers: bool = true,
 
-    ips: ?Array(IpString) = null,
+    ips: ?Array(Network) = null,
     methods: ?Array(httpz.Method) = null,
 
     responding: JsonField(Responding) = .{ .value = .capture },
