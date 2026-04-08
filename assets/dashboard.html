@@ -207,6 +207,52 @@
                       </template>
                     </div>
                   </div>
+
+                  <!-- Responding Settings -->
+                  <div class="mb-3">
+                    <label class="form-label">Responding</label>
+                    <select class="form-select" x-model="updatingBin.responseType">
+                      <template x-for="responseType in validResponseTypes">
+                        <option :value="responseType" x-text="responseType"
+                          :selected="updatingBin.responseType === responseType"></option>
+                      </template>
+                    </select>
+
+                    <!-- Template Response Settings -->
+                    <div class="mt-3" x-show="updatingBin.responseType === 'template'">
+                      <!-- General Settings -->
+                      <label class="form-label">Response Settings</label>
+                      <div class="input-group mb-3">
+                        <span class="input-group-text">Status</span>
+                        <input type="number" class="form-control" x-model="updatingBin.template.status">
+                      </div>
+
+                      <!-- Headers -->
+                      <div class="mb-3">
+                        <label class="form-label">Response Headers</label>
+                        <template x-for="[name, value] of Object.entries(activeBin.responding.template.headers)">
+                          <div class="input-group">
+                            <input type="text" class="form-control rounded-0 border-bottom-0"
+                              :value="`${name}: ${value}`" readonly>
+                            <a href="#" class="input-group-text link-danger fs-5 lh-1 rounded-0 border-bottom-0"
+                              @click="delete activeBin.responding.template.headers[name]"><i class="bi bi-x"></i></a>
+                          </div>
+                        </template>
+                        <div class="input-group">
+                          <input type="text" class="form-control rounded-top-0"
+                            placeholder="Type response header here..." x-model="updatingBin.newResponseHeader">
+                          <a href="#" class="input-group-text link-success fs-5 lh-1 rounded-top-0"
+                            @click="pushNewResponseHeader()"><i class="bi bi-plus"></i></a>
+                        </div>
+                      </div>
+
+                      <!-- Body Template -->
+                      <div class="mb-3">
+                        <label class="form-label">Body Template</label>
+                        <textarea class="form-control" x-model="updatingBin.template.body"></textarea>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </template>
               <div class="modal-footer">
@@ -292,6 +338,72 @@
                       <li class="list-group-item" x-text="ip"></li>
                     </template>
                   </ul>
+                </template>
+              </div>
+
+              <!-- Responding -->
+              <div class="mt-5">
+                <div class="mb-3">
+                  <span class="fs-3 fw-medium">Responding</span>
+                  <span class="ms-3 badge text-bg-info" data-bs-toggle="tooltip" data-bs-placement="top"
+                    data-bs-title="Respond captured info in JSON" x-show="activeBin.responding.capture">Capture</span>
+                  <span class="ms-3 badge text-bg-info" data-bs-toggle="tooltip" data-bs-placement="top"
+                    data-bs-title="Render response from template" x-show="activeBin.responding.template">Template</span>
+                </div>
+
+                <!-- Template Response -->
+                <template x-if="activeBin.responding.template">
+                  <div class="row">
+                    <!-- Left Grid (General & Headers) -->
+                    <div class="col-md-6">
+                      <!-- General -->
+                      <h5 class="mb-3">General</h5>
+                      <ul class="list-group mb-3" style="font-size: .9rem">
+                        <li class="list-group-item lh-sm">
+                          <div class="row">
+                            <div class="col-md-4 fw-medium">Status</div>
+                            <div class="col-md-8">
+                              <code x-text="activeBin.responding.template.status"></code>
+                            </div>
+                          </div>
+                        </li>
+                      </ul>
+
+                      <!-- Headers -->
+                      <h5 class="mb-3">Headers</h5>
+                      <ul class="list-group mb-3" style="font-size: .9rem"
+                        x-data="{ headers: Object.entries(activeBin.responding.template.headers) }">
+                        <template x-if="headers.length === 0">
+                          <li class="list-group-item">
+                            No headers
+                          </li>
+                        </template>
+                        <template x-if="headers.length > 0">
+                          <template x-for="[name, value] of headers">
+                            <li class="list-group-item lh-sm">
+                              <div class="row">
+                                <div class="col-md-4 fw-medium" x-text="name">
+                                </div>
+                                <div class="col-md-8">
+                                  <code x-text="value"></code>
+                                </div>
+                              </div>
+                            </li>
+                          </template>
+                        </template>
+                      </ul>
+                    </div>
+
+                    <!-- Right Grid (Body Template) -->
+                    <div class="col-md-6">
+                      <!-- Body Template -->
+                      <h5 class="mb-3">Body Template</h5>
+                      <div class="border px-3 py-2 mb-3 rounded">
+                        <pre class="mb-0"
+                          x-html="hljs.highlightAuto(renderBody(activeBin.responding.template.body)).value"></pre>
+                      </div>
+                    </div>
+                  </div>
                 </template>
               </div>
 
@@ -456,6 +568,19 @@
     // @ts-check
 
     /**
+     * @typedef {Object} Template
+     * @property {number} status
+     * @property {any} headers
+     * @property {string} body
+     */
+
+    /**
+     * @typedef {Object} Responding
+     * @property {{} | undefined} [capture]
+     * @property {Template | undefined} [template]
+     */
+
+    /**
      * @typedef {Object} Bin
      * @property {number?} id
      * @property {string} name
@@ -464,6 +589,7 @@
      * @property {boolean} headers
      * @property {string[]?} ips
      * @property {string[]?} methods
+     * @property {Responding} responding
      */
 
     /**
@@ -478,6 +604,9 @@
      * @property {string} newIP
      * @property {boolean} allowAnyMethod
      * @property {string[]} methods
+     * @property {"capture" | "template"} responseType
+     * @property {string} newResponseHeader
+     * @property {Template} template
      */
 
     /**
@@ -514,6 +643,8 @@
 
     /** @type {string[]} */
     const validMethods = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "CONNECT"];
+    /** @type {string[]} */
+    const validResponseTypes = ["capture", "template"];
 
     const app = () => ({
       /** @type {boolean} */
@@ -781,18 +912,35 @@
        * @returns {void}
        */
       initUpdatingBin(copy) {
+        /** @type {Template} */
+        const defaultTemplate = {
+          status: 200,
+          headers: {},
+          body: "",
+        };
+
         if (copy && this.activeBin !== null) {
+          const bin = this.activeBin;
+          const template = bin.responding.template;
+
           this.updatingBin = {
-            id: this.activeBin.id,
-            name: this.activeBin.name,
-            body: this.activeBin.body,
-            query: this.activeBin.query,
-            headers: this.activeBin.headers,
-            allowAnyIP: this.activeBin.ips === null,
-            ips: this.activeBin.ips !== null ? [...this.activeBin.ips] : [],
-            allowAnyMethod: this.activeBin.methods === null,
-            methods: this.activeBin.methods !== null ? [...this.activeBin.methods] : [],
+            id: bin.id,
+            name: bin.name,
+            body: bin.body,
+            query: bin.query,
+            headers: bin.headers,
+            allowAnyIP: bin.ips === null,
+            ips: bin.ips !== null ? [...bin.ips] : [],
+            allowAnyMethod: bin.methods === null,
+            methods: bin.methods !== null ? [...bin.methods] : [],
             newIP: "",
+            responseType: /** @type {"capture" | "template"} */ (Object.entries(bin.responding)[0][0]),
+            newResponseHeader: "",
+            template: template !== undefined ? {
+              status: template.status,
+              headers: template.headers,
+              body: template.body,
+            } : defaultTemplate,
           }
         } else {
           this.updatingBin = {
@@ -806,6 +954,9 @@
             allowAnyMethod: true,
             methods: [],
             newIP: "",
+            responseType: "capture",
+            newResponseHeader: "",
+            template: defaultTemplate,
           };
         }
       },
@@ -827,6 +978,24 @@
       },
 
       /**
+       * @returns {void}
+       */
+      pushNewResponseHeader() {
+        if (this.updatingBin === null) return;
+
+        const pattern = /^(?<name>[\w\-]+): ?(?<value>.+)$/;
+        const result = pattern.exec(this.updatingBin.newResponseHeader);
+
+        if (result === null || result.groups === undefined) {
+          this.notify("Invalid header.", "danger");
+          return;
+        }
+
+        this.updatingBin.template.headers[result.groups["name"]] = result.groups["value"] ?? "";
+        this.updatingBin.newResponseHeader = "";
+      },
+
+      /**
        * @returns {Promise<void>}
        */
       async updateBin() {
@@ -837,6 +1006,16 @@
           return;
         }
 
+        /** @type {Responding} */
+        const responding = (() => {
+          switch (this.updatingBin.responseType) {
+            case "capture":
+              return { capture: {} };
+            case "template":
+              return { template: this.updatingBin.template }
+          }
+        })();
+
         /** @type {Bin} **/
         const bin = {
           id: this.updatingBin.id,
@@ -846,6 +1025,7 @@
           headers: this.updatingBin.headers,
           ips: this.updatingBin.allowAnyIP ? null : this.updatingBin.ips,
           methods: this.updatingBin.allowAnyMethod ? null : this.updatingBin.methods,
+          responding,
         };
 
         await this.fetch("/api/bins", {
