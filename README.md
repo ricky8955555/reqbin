@@ -146,6 +146,8 @@ Respond captured info in JSON.
 
 ##### template
 
+Render response from template.
+
 ```jsonc
 {
     "template": {
