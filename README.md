@@ -54,7 +54,7 @@ Then access the application via <http://localhost:7280>.
 
 > Inspect a bin.
 >
-> Params:
+> Params:  
 > `:bin`: Bin name.
 >
 > Returns (`Bin`): The bin to inspect.
@@ -63,14 +63,14 @@ Then access the application via <http://localhost:7280>.
 
 > Remove a bin and all the captures.
 >
-> Params:
+> Params:  
 > `:bin`: Bin name.
 
 ##### `GET /api/bins/:bin/captures`
 
 > Fetch all captures of a bin.
 >
-> Params:
+> Params:  
 > `:bin`: Bin name.
 >
 > Returns (`Page[Capture]`): The captures with offset and limit specified via page options.
@@ -79,14 +79,14 @@ Then access the application via <http://localhost:7280>.
 
 > Clear all captured accesses of a bin.
 >
-> Params:
+> Params:  
 > `:bin`: Bin name.
 
 ##### `GET /api/bins/:bin/captures/:capture`
 
 > Inspect a capture.
 >
-> Params:
+> Params:  
 > `:bin`: Bin name.
 >
 > Returns (`Capture`): The capture to inspect.
@@ -95,7 +95,7 @@ Then access the application via <http://localhost:7280>.
 
 > Remove a capture.
 >
-> Params:
+> Params:  
 > `:bin`: Bin name.
 
 #### Capture Endpoints
@@ -104,7 +104,7 @@ Then access the application via <http://localhost:7280>.
 
 > Any access to this route will be captured into specific bin, then the captured data will be returned to the client.
 >
-> Params:
+> Params:  
 > `:bin`: Bin name.
 >
 > Returns (`Capture`): The access info captured.
