@@ -9,5 +9,8 @@ data.db
 # Database schema
 db/schema.sql
 
+# Python cache
+__pycache__/
+
 # Dockerfile
 Dockerfile
