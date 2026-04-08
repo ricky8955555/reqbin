@@ -26,75 +26,92 @@ touch data.db
 docker run -d --name reqbin -v $(pwd)/data.db:/app/data.db -p 7280:7280 reqbin
 ```
 
-Then access the application via http://localhost:7280.
+Then access the application via <http://localhost:7280>.
 
 ## API Reference
 
 ### Endpoints
 
-#### Bin Management
+#### Bin Management Endpoints
 
 **Following API is authentication needed if configured.**
 
 ##### `PUT /api/bins`
 
 > Create or update a bin. Bin model should be represented in JSON format.
-> 
+>
 > Returns (`Bin`): The created bin.
 
 ##### `GET /api/bins`
 
 > Fetch all bins.
-> 
+>
 > Query (`PageParams`): Page options.
-> 
+>
 > Returns (`Page[Bin]`): The bins with offset and limit specified via page options.
 
 ##### `GET /api/bins/:bin`
 
 > Inspect a bin.
-> 
+>
+> Params:
+> `:bin`: Bin name.
+>
 > Returns (`Bin`): The bin to inspect.
 
 ##### `DELETE /api/bins/:bin`
 
 > Remove a bin and all the captures.
+>
+> Params:
+> `:bin`: Bin name.
 
 ##### `GET /api/bins/:bin/captures`
 
 > Fetch all captures of a bin.
-> 
+>
+> Params:
+> `:bin`: Bin name.
+>
 > Returns (`Page[Capture]`): The captures with offset and limit specified via page options.
 
 ##### `DELETE /api/bins/:bin/captures`
 
 > Clear all captured accesses of a bin.
+>
+> Params:
+> `:bin`: Bin name.
 
 ##### `GET /api/bins/:bin/captures/:capture`
 
 > Inspect a capture.
-> 
+>
+> Params:
+> `:bin`: Bin name.
+>
 > Returns (`Capture`): The capture to inspect.
 
 ##### `DELETE /api/bins/:bin/captures/:capture`
 
 > Remove a capture.
+>
+> Params:
+> `:bin`: Bin name.
 
-#### Capture
+#### Capture Endpoints
 
 ##### `ANY /access/:bin`
 
 > Any access to this route will be captured into specific bin, then the captured data will be returned to the client.
-> 
+>
+> Params:
+> `:bin`: Bin name.
+>
 > Returns (`Capture`): The access info captured.
-
-### Params
-
-- `:bin`: Bin name.
 
 ### Models
 
-#### Bin
+#### Bin Model
 
 ```jsonc
 {
@@ -115,7 +132,7 @@ Then access the application via http://localhost:7280.
 },
 ```
 
-#### Responding
+#### Responding Model
 
 ##### capture
 
@@ -157,7 +174,7 @@ Respond captured info in JSON.
 7. `cookies`: Raw cookie in header
 8. `cookies.*`: Specified cookie value
 
-#### Capture
+#### Capture Model
 
 ```jsonc
 {
@@ -172,7 +189,7 @@ Respond captured info in JSON.
 }
 ```
 
-#### Page
+#### Page Model
 
 ```jsonc
 {
@@ -184,7 +201,7 @@ Respond captured info in JSON.
 }
 ```
 
-#### PageParams
+#### PageParams Model
 
 ```jsonc
 {
