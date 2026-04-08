@@ -57,9 +57,11 @@ pub fn parse(allocator: std.mem.Allocator, template: []const u8) !Template {
                 },
                 '}' => {
                     if (state != .variable or start_index == index) return error.UnexpectedToken;
+
+                    const name = std.mem.trim(u8, template[start_index..index], " ");
                     break :next .{
                         .state = .raw,
-                        .block = .{ .variable = template[start_index..index] },
+                        .block = .{ .variable = name },
                     };
                 },
                 '\\' => {
