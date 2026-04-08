@@ -296,14 +296,14 @@ pub const Network = struct {
 };
 
 pub const Responding = union(enum) {
-    pub const Static = struct {
+    pub const Template = struct {
         status: u16 = 200,
         headers: JsonField(StringKeyValue),
         body: []const u8,
     };
 
     capture: void,
-    static: Static,
+    template: Template,
 };
 
 pub const Bin = struct {

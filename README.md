@@ -127,9 +127,7 @@ Respond captured info in JSON.
 }
 ```
 
-##### static
-
-Make static response.
+##### template
 
 ```jsonc
 {
@@ -138,10 +136,26 @@ Make static response.
         "headers": {  // Headers of response
             "Content-Type": "application/json"
         },
-        "body": "{\"foo\": \"bar\"}"  // Body of response
+        "body": "{\"foo\": \"bar\"}"  // Body template of response
     }
 }
 ```
+
+###### Template Syntax
+
+1. Access variable: `{variable}`
+2. Escape characters: `{` => `\{`, `}` => `\}`, `\` => `\\`
+
+###### Available Variables
+
+1. `method`: Request method
+2. `body`: Request body
+3. `headers`: Prettified headers
+4. `headers.*`: Specified header value (header name should be full lower-case) (e.g. `headers.user-agent`)
+5. `query`: Query in query-string format
+6. `query.*`: Specified query value
+7. `cookies`: Raw cookie in header
+8. `cookies.*`: Specified cookie value
 
 #### Capture
 

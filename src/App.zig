@@ -8,7 +8,9 @@ const zdt = @import("zdt");
 const httpz_utils = @import("httpz_utils.zig");
 const models = @import("models.zig");
 const network = @import("network.zig");
+const response_template = @import("response_template.zig");
 const sql_query = @import("sql_query.zig");
+const Template = @import("Template.zig");
 
 pub const Context = struct {
     allocator: std.mem.Allocator,
@@ -108,17 +110,19 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
     try sql_query.captures.add(ctx.db, arena.allocator(), &capture);
 
     switch (bin.responding.value) {
-        .static => |static| {
-            res.status = static.status;
+        .template => |template| {
+            res.status = template.status;
 
-            var it = static.headers.value.iterator();
+            var it = template.headers.value.iterator();
 
             while (it.next()) |header| {
                 res.header(header.key, header.value);
             }
 
+            const parsed = try Template.parse(ctx.allocator, template.body);
+            defer parsed.deinit(ctx.allocator);
             const writer = res.writer();
-            try writer.writeAll(static.body);
+            try response_template.render(parsed, req, writer);
         },
         .capture => {
             try res.json(capture, .{});
