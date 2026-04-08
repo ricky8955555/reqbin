@@ -148,12 +148,12 @@ Respond captured info in JSON.
 
 ```jsonc
 {
-    "static": {
+    "template": {
         "status": 200,  // Status code of response
         "headers": {  // Headers of response
             "Content-Type": "application/json"
         },
-        "body": "{\"foo\": \"bar\"}"  // Body template of response
+        "body": "{\"token\": \"{cookies.token}\"}"  // Body template of response
     }
 }
 ```
