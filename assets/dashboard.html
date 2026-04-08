@@ -371,8 +371,8 @@
 
                       <!-- Headers -->
                       <h5 class="mb-3">Headers</h5>
-                      <ul class="list-group mb-3" style="font-size: .9rem"
-                        x-data="{ headers: Object.entries(activeBin.responding.template.headers) }">
+                      <ul class="list-group mb-3" style="font-size: .9rem" x-data="{ headers: null }"
+                        x-effect="headers = Object.entries(activeBin.responding.template.headers)">
                         <template x-if="headers.length === 0">
                           <li class="list-group-item">
                             No headers
@@ -458,8 +458,8 @@
                             <div class="col-lg-6">
                               <!-- Headers -->
                               <h5 class="mb-3">Headers</h5>
-                              <ul class="list-group mb-3" style="font-size: .9rem"
-                                x-data="{ headers: capture.headers ? Object.entries(capture.headers) : [] }">
+                              <ul class="list-group mb-3" style="font-size: .9rem" x-data="{ headers: null }"
+                                x-effect="headers = capture.headers ? Object.entries(capture.headers) : []">
                                 <template x-if="headers.length === 0">
                                   <li class="list-group-item">
                                     No headers
@@ -482,8 +482,8 @@
 
                               <!-- Query -->
                               <h5 class="mb-3 mt-3">Query</h5>
-                              <ul class="list-group mb-3" style="font-size: .9rem"
-                                x-data="{ query: capture.query ? Object.entries(capture.query) : [] }">
+                              <ul class="list-group mb-3" style="font-size: .9rem" x-data="{ query: null }"
+                                x-effect="query = capture.query ? Object.entries(capture.query) : []">
                                 <template x-if="query.length === 0">
                                   <li class="list-group-item">
                                     No query parameters
