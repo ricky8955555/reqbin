@@ -155,7 +155,7 @@ Render response from template.
         "headers": {  // Headers of response
             "Content-Type": "application/json"
         },
-        "body": "{\"token\": \"{cookies.token}\"}"  // Body template of response
+        "body": "\\{\"token\": \"{cookies.token}\"\\}"  // Body template of response
     }
 }
 ```
