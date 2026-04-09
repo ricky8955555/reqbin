@@ -21,27 +21,93 @@ pub const Context = struct {
     trusted_proxies: []const network.Network,
 };
 
+const Authorization = struct {
+    pub const Config = struct {
+        credential: []const u8,
+    };
+
+    config: Config,
+    allocator: std.mem.Allocator,
+
+    pub fn init(config: Config, mw_config: httpz.MiddlewareConfig) !Authorization {
+        return .{ .config = config, .allocator = mw_config.allocator };
+    }
+
+    pub fn execute(self: *const Authorization, req: *httpz.Request, res: *httpz.Response, executor: anytype) !void {
+        const authorized = authorized: {
+            const scheme = "Basic ";
+            const optional_authorization = req.header("authorization");
+
+            if (optional_authorization) |authorization| {
+                if (std.mem.startsWith(u8, authorization, scheme)) {
+                    const encoded = authorization[scheme.len..];
+
+                    const decoder = std.base64.url_safe.Decoder;
+
+                    const bufsize = decoder.calcSizeForSlice(encoded) catch break :authorized false;
+                    const got = try self.allocator.alloc(u8, bufsize);
+                    defer self.allocator.free(got);
+
+                    decoder.decode(got, encoded) catch break :authorized false;
+
+                    if (!std.mem.eql(u8, got, self.config.credential)) break :authorized false;
+
+                    break :authorized true;
+                }
+            }
+
+            break :authorized false;
+        };
+
+        if (!authorized) {
+            respondError(res, .unauthorized);
+        } else {
+            return executor.next();
+        }
+    }
+};
+
 server: httpz.Server(*Context),
+_api_middlewares: []const httpz.Middleware(*Context),
 
 const App = @This();
 
 pub fn init(ctx: *Context, config: httpz.Config) !App {
-    var app = App{ .server = undefined };
+    var app = App{
+        .server = undefined,
+        ._api_middlewares = undefined,
+    };
+
     app.server = try httpz.Server(*Context).init(ctx.allocator, config, ctx);
 
     var router = try app.server.router(.{});
-    router.get("/api/bins", fetchBins, .{});
-    router.put("/api/bins", createOrUpdateBin, .{});
-    router.get("/api/bins/:bin", inspectBin, .{});
-    router.delete("/api/bins/:bin", deleteBin, .{});
-    router.get("/api/bins/:bin/captures", viewBin, .{});
-    router.delete("/api/bins/:bin/captures", clearBin, .{});
-    router.get("/api/bins/:bin/captures/:capture", inspectCapture, .{});
-    router.delete("/api/bins/:bin/captures/:capture", deleteCapture, .{});
 
     router.all("/access/:bin", captureAccess, .{});
-
     router.get("/", serveDashboard, .{});
+
+    app._api_middlewares = middlewares: {
+        if (ctx.auth) |credential| {
+            break :middlewares try ctx.allocator.dupe(httpz.Middleware(*Context), &.{
+                try app.server.middleware(Authorization, .{ .credential = credential }),
+            });
+        } else {
+            break :middlewares &.{};
+        }
+    };
+
+    var api_router = router.group(
+        "/api",
+        .{ .middlewares = app._api_middlewares },
+    );
+
+    api_router.get("/bins", fetchBins, .{});
+    api_router.put("/bins", createOrUpdateBin, .{});
+    api_router.get("/bins/:bin", inspectBin, .{});
+    api_router.delete("/bins/:bin", deleteBin, .{});
+    api_router.get("/bins/:bin/captures", viewBin, .{});
+    api_router.delete("/bins/:bin/captures", clearBin, .{});
+    api_router.get("/bins/:bin/captures/:capture", inspectCapture, .{});
+    api_router.delete("/bins/:bin/captures/:capture", deleteCapture, .{});
 
     return app;
 }
@@ -142,35 +208,6 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
     }
 }
 
-fn authorize(ctx: *Context, req: *httpz.Request) !bool {
-    if (ctx.auth) |auth| {
-        const scheme = "Basic ";
-        const optional_authorization = req.header("authorization");
-
-        if (optional_authorization) |authorization| {
-            if (std.mem.startsWith(u8, authorization, scheme)) {
-                const enc_cred = authorization[scheme.len..];
-
-                const decoder = std.base64.url_safe.Decoder;
-
-                const bufsize = decoder.calcSizeForSlice(enc_cred) catch return false;
-                const cred = try ctx.allocator.alloc(u8, bufsize);
-                defer ctx.allocator.free(cred);
-
-                decoder.decode(cred, enc_cred) catch return false;
-
-                if (!std.mem.eql(u8, cred, auth)) return false;
-
-                return true;
-            }
-        }
-
-        return false;
-    } else {
-        return true;
-    }
-}
-
 fn isValidBinName(name: []const u8) bool {
     if (name.len == 0) return false;
 
@@ -185,11 +222,6 @@ fn isValidBinName(name: []const u8) bool {
 }
 
 fn viewBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
-    if (!try authorize(ctx, req)) {
-        respondError(res, .unauthorized);
-        return;
-    }
-
     const bin_name = req.param("bin").?;
 
     const bin = try sql_query.bins.getId(ctx.db, bin_name) orelse {
@@ -220,11 +252,6 @@ fn viewBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
 }
 
 fn fetchBins(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
-    if (!try authorize(ctx, req)) {
-        respondError(res, .unauthorized);
-        return;
-    }
-
     const query = try req.query();
     const options = models.PageParams.parseFromStringKeyValue(query) catch {
         respondError(res, .unprocessable_entity);
@@ -242,11 +269,6 @@ fn fetchBins(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
 }
 
 fn createOrUpdateBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
-    if (!try authorize(ctx, req)) {
-        respondError(res, .unauthorized);
-        return;
-    }
-
     var bin = req.json(models.Bin) catch null orelse {
         respondError(res, .bad_request);
         return;
@@ -274,11 +296,6 @@ fn createOrUpdateBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !
 }
 
 fn inspectBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
-    if (!try authorize(ctx, req)) {
-        respondError(res, .unauthorized);
-        return;
-    }
-
     const bin_name = req.param("bin").?;
 
     var arena = std.heap.ArenaAllocator.init(ctx.allocator);
@@ -293,11 +310,6 @@ fn inspectBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
 }
 
 fn deleteBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
-    if (!try authorize(ctx, req)) {
-        respondError(res, .unauthorized);
-        return;
-    }
-
     const bin_name = req.param("bin").?;
 
     try sql_query.bins.delete(ctx.db, bin_name);
@@ -306,11 +318,6 @@ fn deleteBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
 }
 
 fn clearBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
-    if (!try authorize(ctx, req)) {
-        respondError(res, .unauthorized);
-        return;
-    }
-
     const bin_name = req.param("bin").?;
     const bin = try sql_query.bins.getId(ctx.db, bin_name) orelse {
         respondError(res, .not_found);
@@ -323,11 +330,6 @@ fn clearBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
 }
 
 fn inspectCapture(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
-    if (!try authorize(ctx, req)) {
-        respondError(res, .unauthorized);
-        return;
-    }
-
     const bin_name = req.param("bin").?;
     const capture_id = std.fmt.parseInt(i64, req.param("capture").?, 10) catch {
         respondError(res, .unprocessable_entity);
@@ -351,11 +353,6 @@ fn inspectCapture(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !voi
 }
 
 fn deleteCapture(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
-    if (!try authorize(ctx, req)) {
-        respondError(res, .unauthorized);
-        return;
-    }
-
     const bin_name = req.param("bin").?;
     const capture = std.fmt.parseInt(i64, req.param("capture").?, 10) catch {
         respondError(res, .unprocessable_entity);
