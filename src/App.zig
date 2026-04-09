@@ -45,6 +45,8 @@ const Authorization = struct {
                     const decoder = std.base64.standard.Decoder;
 
                     const bufsize = decoder.calcSizeForSlice(encoded) catch break :authorized false;
+                    if (bufsize != self.config.credential.len) break :authorized false;
+
                     const got = try self.allocator.alloc(u8, bufsize);
                     defer self.allocator.free(got);
 
