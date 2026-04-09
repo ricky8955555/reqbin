@@ -219,7 +219,6 @@ All configurations can be done by setting the following environment variables.
 - `REQBIN_MAX_BODY_SIZE`: Max body size of a request. (Default: `null`, while `http.zig`'s default value is used)
 - `REQBIN_MAX_QUERY_COUNT`: Max query count of a request. (Default: `null`, while `http.zig`'s default value is used)
 - `REQBIN_MAX_HEADER_COUNT`: Max header count of a request. (Default: `null`, while `http.zig`'s default value is used)
-- `REQBIN_MAX_FORM_COUNT`: Max form count of a request. (Default: `null`, while `http.zig`'s default value is used)
 - `REQBIN_DATABASE`: Database path. (Default: `data.db`)
 - `REQBIN_ADDRESS`: The address used by the HTTP service. (Default: `127.0.0.1`, Dockerfile Default: `0.0.0.0`)
 - `REQBIN_PORT`: The port used by the HTTP service. (Default: `7280`)

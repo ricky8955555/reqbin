@@ -9,7 +9,6 @@ const Config = struct {
     max_body_size: ?usize = null,
     max_query_count: ?usize = null,
     max_header_count: ?usize = null,
-    max_form_count: ?usize = null,
 
     database: []const u8 = "data.db",
 
@@ -127,7 +126,6 @@ pub fn main() !void {
             .max_body_size = config.max_body_size,
             .max_header_count = config.max_header_count,
             .max_query_count = config.max_query_count,
-            .max_form_count = config.max_form_count,
         },
     });
     defer app.deinit();
