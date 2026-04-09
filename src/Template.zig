@@ -62,9 +62,7 @@ pub fn parse(allocator: std.mem.Allocator, template: []const u8) !Template {
                         };
                         start_index = index + 1;
                     },
-                    '}' => {
-                        return error.UnexpectedToken;
-                    },
+                    '}' => return error.UnexpectedToken,
                     else => continue,
                 }
             },
