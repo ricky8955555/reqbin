@@ -62,16 +62,21 @@ const Config = struct {
 pub fn main() !void {
     var debug_allocator = std.heap.DebugAllocator(.{}).init;
     const allocator, const is_debug = allocator: {
-        if (builtin.link_libc) {
-            if (@alignOf(std.c.max_align_t) < @max(@alignOf(i128), std.atomic.cache_line)) {
-                break :allocator .{ std.heap.c_allocator, false };
-            }
-            break :allocator .{ std.heap.raw_c_allocator, false };
+        switch (builtin.mode) {
+            .Debug, .ReleaseSafe => {
+                break :allocator .{ debug_allocator.allocator(), true };
+            },
+            .ReleaseFast, .ReleaseSmall => {
+                if (builtin.link_libc) {
+                    if (@alignOf(std.c.max_align_t) < @max(@alignOf(i128), std.atomic.cache_line)) {
+                        break :allocator .{ std.heap.c_allocator, false };
+                    }
+                    break :allocator .{ std.heap.raw_c_allocator, false };
+                }
+
+                break :allocator .{ std.heap.smp_allocator, false };
+            },
         }
-        break :allocator switch (builtin.mode) {
-            .Debug, .ReleaseSafe => .{ debug_allocator, true },
-            .ReleaseFast, .ReleaseSmall => .{ std.heap.smp_allocator, false },
-        };
     };
     defer if (is_debug) {
         _ = debug_allocator.deinit();
