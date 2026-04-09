@@ -114,11 +114,17 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
             const writer = res.writer();
 
             const parsed = Template.parse(ctx.allocator, template.body) catch |err| {
-                try writer.print("Failed to render template: {any}", .{err});
+                try writer.print("Failed to parse template: {any}", .{err});
                 res.setStatus(.internal_server_error);
                 return;
             };
             defer parsed.deinit(ctx.allocator);
+
+            response_template.render(parsed, req, writer) catch |err| {
+                try writer.print("Failed to render template: {any}", .{err});
+                res.setStatus(.internal_server_error);
+                return;
+            };
 
             res.status = template.status;
 
@@ -127,8 +133,6 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
             while (it.next()) |header| {
                 res.header(header.key, header.value);
             }
-
-            try response_template.render(parsed, req, writer);
         },
         .capture => {
             try res.json(capture, .{});
