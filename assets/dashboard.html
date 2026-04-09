@@ -944,11 +944,7 @@
             newIP: "",
             responseType: /** @type {"capture" | "template"} */ (Object.entries(bin.responding)[0][0]),
             newResponseHeader: "",
-            template: template !== undefined ? {
-              status: template.status,
-              headers: template.headers,
-              body: template.body,
-            } : defaultTemplate,
+            template: template !== undefined ? JSON.parse(JSON.stringify(template)) : defaultTemplate,
           }
         } else {
           this.updatingBin = {
