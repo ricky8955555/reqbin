@@ -111,6 +111,15 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
 
     switch (bin.responding.value) {
         .template => |template| {
+            const writer = res.writer();
+
+            const parsed = Template.parse(ctx.allocator, template.body) catch |err| {
+                try writer.print("Failed to render template: {any}", .{err});
+                res.setStatus(.internal_server_error);
+                return;
+            };
+            defer parsed.deinit(ctx.allocator);
+
             res.status = template.status;
 
             var it = template.headers.value.iterator();
@@ -119,9 +128,6 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
                 res.header(header.key, header.value);
             }
 
-            const parsed = try Template.parse(ctx.allocator, template.body);
-            defer parsed.deinit(ctx.allocator);
-            const writer = res.writer();
             try response_template.render(parsed, req, writer);
         },
         .capture => {
