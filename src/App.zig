@@ -42,7 +42,7 @@ const Authorization = struct {
                 if (std.mem.startsWith(u8, authorization, scheme)) {
                     const encoded = authorization[scheme.len..];
 
-                    const decoder = std.base64.url_safe.Decoder;
+                    const decoder = std.base64.standard.Decoder;
 
                     const bufsize = decoder.calcSizeForSlice(encoded) catch break :authorized false;
                     const got = try self.allocator.alloc(u8, bufsize);
