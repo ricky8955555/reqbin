@@ -117,6 +117,9 @@ pub fn listen(self: *App) !void {
 }
 
 pub fn deinit(self: *App) void {
+    const allocator = self.server.handler.allocator;
+    allocator.free(self._api_middlewares);
+
     self.server.deinit();
 }
 
