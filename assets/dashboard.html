@@ -230,7 +230,7 @@
                       <!-- Headers -->
                       <div class="mb-3">
                         <label class="form-label">Response Headers</label>
-                        <template x-for="[name, value] of Object.entries(activeBin.responding.template.headers)">
+                        <template x-for="[name, value] of Object.entries(updatingBin.template.headers)">
                           <div class="input-group">
                             <input type="text" class="form-control rounded-0 border-bottom-0"
                               :value="`${name}: ${value}`" readonly>
