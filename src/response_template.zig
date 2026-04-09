@@ -7,7 +7,7 @@ const Template = @import("Template.zig");
 const RequestVariables = struct {
     request: *httpz.Request,
 
-    fn write(context: *anyopaque, writer: *std.Io.Writer, name: []const u8) anyerror!bool {
+    fn print(context: *anyopaque, writer: *std.Io.Writer, name: []const u8) anyerror!bool {
         const self: *RequestVariables = @ptrCast(@alignCast(context));
         var split = std.mem.splitScalar(u8, name, '.');
 
@@ -72,7 +72,7 @@ const RequestVariables = struct {
         return .{
             .context = @ptrCast(self),
             .vtable = &.{
-                .write = write,
+                .print = print,
             },
         };
     }
