@@ -164,40 +164,6 @@ pub fn Page(comptime T: type) type {
     };
 }
 
-pub fn Array(comptime T: type) type {
-    return struct {
-        value: []T,
-
-        const Self = @This();
-
-        pub const BaseType = []const u8;
-
-        pub fn bindField(self: Self, allocator: Allocator) !BaseType {
-            var out = std.Io.Writer.Allocating.init(allocator);
-            defer out.deinit();
-
-            var stringify = std.json.Stringify{ .writer = &out.writer };
-            try stringify.write(self);
-
-            return out.toOwnedSlice();
-        }
-
-        pub fn readField(allocator: Allocator, value: BaseType) !Self {
-            const parsed = try std.json.parseFromSlice(Self, allocator, value, .{ .allocate = .alloc_always });
-            return parsed.value;
-        }
-
-        pub fn jsonStringify(self: Self, jws: anytype) !void {
-            try jws.write(self.value);
-        }
-
-        pub fn jsonParse(allocator: Allocator, source: anytype, options: std.json.ParseOptions) std.json.ParseError(@TypeOf(source.*))!Self {
-            const value = try std.json.innerParse([]T, allocator, source, options);
-            return .{ .value = value };
-        }
-    };
-}
-
 fn Validate(comptime BaseType: type, comptime validate: *const fn (value: *const BaseType) bool) type {
     return struct {
         value: BaseType,
@@ -333,8 +299,8 @@ pub const Bin = struct {
     headers: bool = true,
     subpath: SubpathRule = .reject,
 
-    ips: ?Array(Network) = null,
-    methods: ?Array(httpz.Method) = null,
+    ips: ?JsonField([]Network) = null,
+    methods: ?JsonField([]httpz.Method) = null,
 
     responding: JsonField(Responding) = .{ .value = .capture },
 };
