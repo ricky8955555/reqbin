@@ -215,7 +215,11 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
             var it = template.headers.value.iterator();
 
             while (it.next()) |header| {
-                res.header(header.key, header.value);
+                try res.headerOpts(
+                    header.key,
+                    header.value,
+                    .{ .dupe_name = true, .dupe_value = true },
+                );
             }
         },
         .capture => {
