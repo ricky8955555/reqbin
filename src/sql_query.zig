@@ -9,8 +9,8 @@ pub const captures = struct {
     pub fn add(db: *sqlite.Db, allocator: Allocator, model: *models.Capture) !void {
         const query =
             \\INSERT INTO
-            \\captures(id, bin, method, remote_addr, headers, query, body, time)
-            \\VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+            \\captures(id, bin, method, remote_addr, headers, query, subpath, body, time)
+            \\VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
         ;
 
         var stmt = try db.prepare(query);
@@ -23,7 +23,7 @@ pub const captures = struct {
 
     pub fn fetchOrderedAsc(db: *sqlite.Db, allocator: Allocator, bin: i64, options: models.PageParams) ![]models.Capture {
         const query =
-            \\SELECT id, bin, method, remote_addr, headers, query, body, time
+            \\SELECT id, bin, method, remote_addr, headers, query, subpath, body, time
             \\FROM captures
             \\WHERE bin = ?
             \\ORDER BY time ASC
@@ -38,7 +38,7 @@ pub const captures = struct {
 
     pub fn fetchOrderedDesc(db: *sqlite.Db, allocator: Allocator, bin: i64, options: models.PageParams) ![]models.Capture {
         const query =
-            \\SELECT id, bin, method, remote_addr, headers, query, body, time
+            \\SELECT id, bin, method, remote_addr, headers, query, subpath, body, time
             \\FROM captures
             \\WHERE bin = ?
             \\ORDER BY time DESC
@@ -53,7 +53,7 @@ pub const captures = struct {
 
     pub fn get(db: *sqlite.Db, allocator: Allocator, bin: i64, capture: i64) !?models.Capture {
         const query =
-            \\SELECT id, bin, method, remote_addr, headers, query, body, time
+            \\SELECT id, bin, method, remote_addr, headers, query, subpath, body, time
             \\FROM captures
             \\WHERE id = ? AND bin = ?
         ;
@@ -103,8 +103,8 @@ pub const bins = struct {
     pub fn addOrUpdate(db: *sqlite.Db, allocator: Allocator, model: *models.Bin) !void {
         const query =
             \\INSERT OR REPLACE INTO
-            \\bins(id, name, body, query, header, ips, methods, responding)
-            \\VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+            \\bins(id, name, body, query, header, subpath, ips, methods, responding)
+            \\VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
         ;
 
         var stmt = try db.prepare(query);
@@ -119,7 +119,7 @@ pub const bins = struct {
 
     pub fn get(db: *sqlite.Db, allocator: Allocator, name: []const u8) !?models.Bin {
         const query =
-            \\SELECT id, name, body, query, header, ips, methods, responding
+            \\SELECT id, name, body, query, header, subpath, ips, methods, responding
             \\FROM bins
             \\WHERE name = ?
         ;
@@ -143,7 +143,7 @@ pub const bins = struct {
 
     pub fn fetch(db: *sqlite.Db, allocator: Allocator, options: models.PageParams) ![]models.Bin {
         const query =
-            \\SELECT id, name, body, query, header, ips, methods, responding
+            \\SELECT id, name, body, query, header, subpath, ips, methods, responding
             \\FROM bins
             \\LIMIT $limit OFFSET $offset
         ;

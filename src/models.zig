@@ -131,6 +131,7 @@ pub const Capture = struct {
 
     headers: ?JsonField(StringKeyValue) = null,
     query: ?JsonField(StringKeyValue) = null,
+    subpath: ?[]const u8 = null,
 
     body: ?[]const u8 = null,
 
@@ -306,6 +307,22 @@ pub const Responding = union(enum) {
     template: Template,
 };
 
+pub const SubpathRule = enum(u8) {
+    reject = 0,
+    ignore = 1,
+    accept = 2,
+
+    pub const BaseType = u8;
+
+    pub fn bindField(self: SubpathRule, _: Allocator) !BaseType {
+        return @intFromEnum(self);
+    }
+
+    pub fn readField(_: Allocator, value: BaseType) !SubpathRule {
+        return @enumFromInt(value);
+    }
+};
+
 pub const Bin = struct {
     id: ?i64 = null,
 
@@ -314,6 +331,7 @@ pub const Bin = struct {
     body: bool = true,
     query: bool = true,
     headers: bool = true,
+    subpath: SubpathRule = .reject,
 
     ips: ?Array(Network) = null,
     methods: ?Array(httpz.Method) = null,

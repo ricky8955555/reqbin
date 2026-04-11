@@ -74,6 +74,8 @@ _api_middlewares: []const httpz.Middleware(*Context),
 
 const App = @This();
 
+const access_path_prefix = "/access";
+
 pub fn init(ctx: *Context, config: httpz.Config) !App {
     var app = App{
         .server = undefined,
@@ -84,7 +86,7 @@ pub fn init(ctx: *Context, config: httpz.Config) !App {
 
     var router = try app.server.router(.{});
 
-    router.all("/access/:bin", captureAccess, .{});
+    router.all(access_path_prefix ++ "/*", captureAccess, .{});
     router.get("/", serveDashboard, .{});
 
     app._api_middlewares = middlewares: {
@@ -132,7 +134,12 @@ fn respondError(res: *httpz.Response, status: std.http.Status) void {
 }
 
 fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
-    const bin_name = req.param("bin").?;
+    std.debug.assert(std.mem.eql(u8, req.url.path[0..access_path_prefix.len], access_path_prefix));
+
+    const params = std.mem.trimStart(u8, req.url.path[access_path_prefix.len..], "/");
+    const slash_idx = std.mem.indexOfScalar(u8, params, '/') orelse params.len;
+    const bin_name = params[0..slash_idx];
+    const subpath = params[slash_idx..];
 
     var arena = std.heap.ArenaAllocator.init(ctx.allocator);
     defer arena.deinit();
@@ -143,6 +150,11 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
         respondError(res, .not_found);
         return;
     };
+
+    if (bin.subpath == .reject and subpath.len != 0 and !std.mem.eql(u8, subpath, "/")) {
+        respondError(res, .not_found);
+        return;
+    }
 
     const remote_addr = httpz_utils.retrieveRemoteAddr(req, ctx.trusted_proxies);
     const remote_addr_str = remote_addr: {
@@ -174,6 +186,7 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
         .remote_addr = remote_addr_str,
         .headers = if (bin.headers) .{ .value = .{ .httpz = req.headers.* } } else null,
         .query = if (bin.query) .{ .value = .{ .httpz = (try req.query()).* } } else null,
+        .subpath = if (bin.subpath == .accept) subpath else null,
         .body = if (bin.body) req.body() else null,
         .time = .{ .value = zdt.Datetime.nowUTC() },
     };
