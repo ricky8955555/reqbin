@@ -167,6 +167,17 @@
                     </div>
                   </div>
 
+                  <!-- Subpath Rule -->
+                  <div class="mb-3">
+                    <label class="form-label">Subpath Rule</label>
+                    <select class="form-select" x-model="updatingBin.subpath">
+                      <template x-for="subpathRule in validSubpathRules">
+                        <option :value="subpathRule" x-text="subpathRule"
+                          :selected="updatingBin.subpath == subpathRule"></option>
+                      </template>
+                    </select>
+                  </div>
+
                   <!-- Allowed IP Settings -->
                   <div class="mb-2">
                     <div class="form-check form-switch">
@@ -314,6 +325,10 @@
                   data-bs-placement="top" data-bs-title="Capture Query">Query</span>
                 <span class="badge text-bg-primary" x-show="activeBin.headers" data-bs-toggle="tooltip"
                   data-bs-placement="top" data-bs-title="Capture Headers">Headers</span>
+                <span class="badge text-bg-info" x-show="activeBin.subpath === 'ignore'" data-bs-toggle="tooltip"
+                  data-bs-placement="top" data-bs-title="Ignore Subpath">*Subpath</span>
+                <span class="badge text-bg-success" x-show="activeBin.subpath === 'accept'" data-bs-toggle="tooltip"
+                  data-bs-placement="top" data-bs-title="Capture Subpath">Subpath</span>
                 <template x-for="method in (activeBin.methods ?? ['ANY'])">
                   <span>
                     <span class="badge text-bg-secondary" x-text="method" data-bs-toggle="tooltip"
@@ -454,8 +469,14 @@
                       <div class="accordion-collapse collapse" :id="$id('capture-detail', capture.id)">
                         <div class="accordion-body pt-3 pb-1">
                           <div class="row">
-                            <!-- Left Grid (Headers & Query) -->
+                            <!-- Left Grid (Subpath & Headers & Query) -->
                             <div class="col-lg-6">
+                              <!-- Subpath -->
+                              <h5 class="mb-3">Subpath</h5>
+                              <div class="border px-3 py-2 mb-3 rounded">
+                                <pre class="mb-0" x-text="capture.subpath ? capture.subpath : 'No subpath'"></pre>
+                              </div>
+
                               <!-- Headers -->
                               <h5 class="mb-3">Headers</h5>
                               <ul class="list-group mb-3" style="font-size: .9rem" x-data="{ headers: null }"
@@ -590,6 +611,7 @@
      * @property {boolean} body
      * @property {boolean} query
      * @property {boolean} headers
+     * @property {"reject" | "ignore" | "accept"} subpath
      * @property {string[]?} ips
      * @property {string[]?} methods
      * @property {Responding} responding
@@ -602,6 +624,7 @@
      * @property {boolean} body
      * @property {boolean} query
      * @property {boolean} headers
+     * @property {"reject" | "ignore" | "accept"} subpath
      * @property {boolean} allowAnyIP
      * @property {string[]} ips
      * @property {string} newIP
@@ -620,6 +643,7 @@
      * @property {string} remote_addr
      * @property {any} headers
      * @property {any} query
+     * @property {string} subpath
      * @property {string?} body
      * @property {number} time
      */
@@ -650,6 +674,9 @@
     /** @type {string[]} */
     /** @constant */
     const validResponseTypes = ["capture", "template"];
+    /** @type {string[]} */
+    /** @constant */
+    const validSubpathRules = ["reject", "ignore", "accept"];
 
     const app = () => ({
       /** @type {boolean} */
@@ -937,6 +964,7 @@
             body: bin.body,
             query: bin.query,
             headers: bin.headers,
+            subpath: bin.subpath,
             allowAnyIP: bin.ips === null,
             ips: bin.ips !== null ? [...bin.ips] : [],
             allowAnyMethod: bin.methods === null,
@@ -953,6 +981,7 @@
             body: true,
             query: true,
             headers: true,
+            subpath: "reject",
             allowAnyIP: true,
             ips: [],
             allowAnyMethod: true,
@@ -1027,6 +1056,7 @@
           body: updatingBin.body,
           query: updatingBin.query,
           headers: updatingBin.headers,
+          subpath: updatingBin.subpath,
           ips: updatingBin.allowAnyIP ? null : updatingBin.ips,
           methods: updatingBin.allowAnyMethod ? null : updatingBin.methods,
           responding,
