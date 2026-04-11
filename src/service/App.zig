@@ -5,12 +5,12 @@ const httpz = @import("httpz");
 const sqlite = @import("sqlite");
 const zdt = @import("zdt");
 
-const httpz_utils = @import("httpz_utils.zig");
-const models = @import("models.zig");
-const network = @import("network.zig");
-const response_template = @import("response_template.zig");
-const sql_query = @import("sql_query.zig");
-const Template = @import("Template.zig");
+const db = @import("../core/db.zig");
+const origin = @import("../utils/origin.zig");
+const models = @import("../core/models.zig");
+const network = @import("../utils/network.zig");
+const response_template = @import("template.zig");
+const Template = @import("../utils/Template.zig");
 
 pub const Context = struct {
     allocator: std.mem.Allocator,
@@ -142,7 +142,7 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
 
     const allocator = arena.allocator();
 
-    const bin = try sql_query.bins.get(ctx.db, allocator, bin_name) orelse {
+    const bin = try db.bins.get(ctx.db, allocator, bin_name) orelse {
         respondError(res, .not_found);
         return;
     };
@@ -152,7 +152,7 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
         return;
     }
 
-    const remote_addr = httpz_utils.retrieveRemoteAddr(req, ctx.trusted_proxies);
+    const remote_addr = origin.retrieveRemoteAddr(req, ctx.trusted_proxies);
     const remote_addr_str = remote_addr: {
         var buf: [64]u8 = undefined;
         break :remote_addr std.fmt.bufPrint(&buf, "{f}", .{remote_addr}) catch unreachable;
@@ -187,7 +187,7 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
         .time = .{ .value = zdt.Datetime.nowUTC() },
     };
 
-    try sql_query.captures.add(ctx.db, arena.allocator(), &capture);
+    try db.captures.add(ctx.db, arena.allocator(), &capture);
 
     switch (bin.responding.value) {
         .template => |template| {
@@ -240,7 +240,7 @@ fn isValidBinName(name: []const u8) bool {
 fn viewBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     const bin_name = req.param("bin").?;
 
-    const bin = try sql_query.bins.getId(ctx.db, bin_name) orelse {
+    const bin = try db.bins.getId(ctx.db, bin_name) orelse {
         respondError(res, .not_found);
         return;
     };
@@ -254,12 +254,12 @@ fn viewBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     var arena = std.heap.ArenaAllocator.init(ctx.allocator);
     defer arena.deinit();
 
-    const total = try sql_query.captures.count(ctx.db, bin);
+    const total = try db.captures.count(ctx.db, bin);
     const captures = captures: {
         if (query.has("desc")) {
-            break :captures try sql_query.captures.fetchOrderedDesc(ctx.db, arena.allocator(), bin, options);
+            break :captures try db.captures.fetchOrderedDesc(ctx.db, arena.allocator(), bin, options);
         } else {
-            break :captures try sql_query.captures.fetchOrderedAsc(ctx.db, arena.allocator(), bin, options);
+            break :captures try db.captures.fetchOrderedAsc(ctx.db, arena.allocator(), bin, options);
         }
     };
     const page = models.Page(models.Capture){ .total = total, .count = captures.len, .data = captures };
@@ -277,8 +277,8 @@ fn fetchBins(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     var arena = std.heap.ArenaAllocator.init(ctx.allocator);
     defer arena.deinit();
 
-    const total = try sql_query.bins.count(ctx.db);
-    const bins = try sql_query.bins.fetch(ctx.db, arena.allocator(), options);
+    const total = try db.bins.count(ctx.db);
+    const bins = try db.bins.fetch(ctx.db, arena.allocator(), options);
     const page = models.Page(models.Bin){ .total = total, .count = bins.len, .data = bins };
 
     try res.json(page, .{});
@@ -297,7 +297,7 @@ fn createOrUpdateBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !
         return;
     }
 
-    const old_id = try sql_query.bins.getId(ctx.db, bin.name);
+    const old_id = try db.bins.getId(ctx.db, bin.name);
     if (old_id != null and old_id != bin.id) {
         respondError(res, .conflict);
         return;
@@ -306,7 +306,7 @@ fn createOrUpdateBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !
     var arena = std.heap.ArenaAllocator.init(ctx.allocator);
     defer arena.deinit();
 
-    try sql_query.bins.addOrUpdate(ctx.db, arena.allocator(), &bin);
+    try db.bins.addOrUpdate(ctx.db, arena.allocator(), &bin);
 
     try res.json(bin, .{});
 }
@@ -317,7 +317,7 @@ fn inspectBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     var arena = std.heap.ArenaAllocator.init(ctx.allocator);
     defer arena.deinit();
 
-    const bin = try sql_query.bins.get(ctx.db, arena.allocator(), bin_name) orelse {
+    const bin = try db.bins.get(ctx.db, arena.allocator(), bin_name) orelse {
         respondError(res, .not_found);
         return;
     };
@@ -328,19 +328,19 @@ fn inspectBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
 fn deleteBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     const bin_name = req.param("bin").?;
 
-    try sql_query.bins.delete(ctx.db, bin_name);
+    try db.bins.delete(ctx.db, bin_name);
 
     res.setStatus(.no_content);
 }
 
 fn clearBin(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void {
     const bin_name = req.param("bin").?;
-    const bin = try sql_query.bins.getId(ctx.db, bin_name) orelse {
+    const bin = try db.bins.getId(ctx.db, bin_name) orelse {
         respondError(res, .not_found);
         return;
     };
 
-    try sql_query.captures.clear(ctx.db, bin);
+    try db.captures.clear(ctx.db, bin);
 
     res.setStatus(.no_content);
 }
@@ -355,12 +355,12 @@ fn inspectCapture(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !voi
     var arena = std.heap.ArenaAllocator.init(ctx.allocator);
     defer arena.deinit();
 
-    const bin = try sql_query.bins.getId(ctx.db, bin_name) orelse {
+    const bin = try db.bins.getId(ctx.db, bin_name) orelse {
         respondError(res, .not_found);
         return;
     };
 
-    const capture = try sql_query.captures.get(ctx.db, arena.allocator(), bin, capture_id) orelse {
+    const capture = try db.captures.get(ctx.db, arena.allocator(), bin, capture_id) orelse {
         respondError(res, .not_found);
         return;
     };
@@ -375,12 +375,12 @@ fn deleteCapture(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
         return;
     };
 
-    const bin = try sql_query.bins.getId(ctx.db, bin_name) orelse {
+    const bin = try db.bins.getId(ctx.db, bin_name) orelse {
         respondError(res, .not_found);
         return;
     };
 
-    try sql_query.captures.delete(ctx.db, bin, capture);
+    try db.captures.delete(ctx.db, bin, capture);
 
     res.setStatus(.no_content);
 }

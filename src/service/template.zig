@@ -2,7 +2,7 @@ const std = @import("std");
 
 const httpz = @import("httpz");
 
-const Template = @import("Template.zig");
+const Template = @import("../utils/Template.zig");
 
 pub const Context = struct {
     request: *httpz.Request,

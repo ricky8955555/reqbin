@@ -5,7 +5,7 @@ const JsonValue = std.json.Value;
 const zdt = @import("zdt");
 const httpz = @import("httpz");
 
-const network = @import("network.zig");
+const network = @import("../utils/network.zig");
 
 pub const Timestamp = struct {
     value: zdt.Datetime,
