@@ -129,10 +129,10 @@ pub const Capture = struct {
     method: []const u8,
     remote_addr: []const u8,
 
-    headers: ?JsonField(StringKeyValue),
+    headers: ?JsonField(StringKeyValue) = null,
+    query: ?JsonField(StringKeyValue) = null,
 
-    query: ?JsonField(StringKeyValue),
-    body: ?[]const u8,
+    body: ?[]const u8 = null,
 
     time: Timestamp,
 };
