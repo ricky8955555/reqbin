@@ -4,11 +4,12 @@ const httpz = @import("httpz");
 
 const Template = @import("Template.zig");
 
-const RequestVariables = struct {
+pub const Context = struct {
     request: *httpz.Request,
+    subpath: []const u8,
 
     fn print(context: *const anyopaque, writer: *std.Io.Writer, name: []const u8) anyerror!bool {
-        const self: *const RequestVariables = @ptrCast(@alignCast(context));
+        const self: *const Context = @ptrCast(@alignCast(context));
         var split = std.mem.splitScalar(u8, name, '.');
 
         const first = split.next().?;
@@ -61,6 +62,9 @@ const RequestVariables = struct {
             } else {
                 try writer.writeAll(cookies.header);
             }
+        } else if (std.mem.eql(u8, first, "subpath")) {
+            if (optional_second != null) return false;
+            try writer.writeAll(self.subpath);
         } else {
             return false;
         }
@@ -68,7 +72,7 @@ const RequestVariables = struct {
         return true;
     }
 
-    fn variables(self: *const RequestVariables) Template.Variables {
+    fn variables(self: *const Context) Template.Variables {
         return .{
             .context = @ptrCast(self),
             .vtable = &.{
@@ -78,9 +82,7 @@ const RequestVariables = struct {
     }
 };
 
-pub fn render(template: Template, request: *httpz.Request, writer: *std.Io.Writer) !void {
-    const request_variables = RequestVariables{ .request = request };
-    const variables = request_variables.variables();
-
+pub fn render(template: Template, context: *const Context, writer: *std.Io.Writer) !void {
+    const variables = context.variables();
     try template.render(writer, variables, .{});
 }

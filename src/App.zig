@@ -205,7 +205,9 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
             };
             defer parsed.deinit(ctx.allocator);
 
-            response_template.render(parsed, req, writer) catch |err| {
+            const context = response_template.Context{ .request = req, .subpath = subpath };
+
+            response_template.render(parsed, &context, writer) catch |err| {
                 try writer.print("Failed to render template: {any}", .{err});
                 res.setStatus(.internal_server_error);
                 res.content_type = .TEXT;
