@@ -120,6 +120,7 @@ Then access the application via <http://localhost:7280>.
     "body": true,           // Collect requests' body or not
     "query": true,          // Collect requests' query or not
     "headers": false,       // Collect requests' headers or not
+    "subpath": "reject",    // Subpath rule (Possible values: reject, ignore, accept)
     "ips": [                // Restrict source ip if set, otherwise, the source will not be checked.
         "127.0.0.1/32"
     ],
@@ -186,6 +187,7 @@ Render response from template.
     "remote_addr": "127.0.0.1:23333",   // Client address
     "headers": null,                    // Headers (always null if disabled)
     "query": {},                        // Query params (always null if disabled)
+    "subpath": "/",                     // Subpath (always null if not accepted)
     "body": "foobar",                   // Body (null if the function is disabled or the capture has no body)
     "time": 1301965440                  // UTC unix timestamp of the capture
 }
