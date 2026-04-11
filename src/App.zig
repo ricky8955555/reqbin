@@ -33,39 +33,35 @@ const Authorization = struct {
         return .{ .config = config, .allocator = mw_config.allocator };
     }
 
+    fn isAuthorized(self: *const Authorization, req: *httpz.Request) !bool {
+        const scheme = "Basic ";
+        const authorization = req.header("authorization") orelse return false;
+
+        if (!std.mem.startsWith(u8, authorization, scheme)) return false;
+
+        const encoded = authorization[scheme.len..];
+
+        const decoder = std.base64.standard.Decoder;
+
+        const bufsize = decoder.calcSizeForSlice(encoded) catch return false;
+        if (bufsize != self.config.credential.len) return false;
+
+        const got = try self.allocator.alloc(u8, bufsize);
+        defer self.allocator.free(got);
+
+        decoder.decode(got, encoded) catch return false;
+
+        if (!std.mem.eql(u8, got, self.config.credential)) return false;
+
+        return true;
+    }
+
     pub fn execute(self: *const Authorization, req: *httpz.Request, res: *httpz.Response, executor: anytype) !void {
-        const authorized = authorized: {
-            const scheme = "Basic ";
-            const optional_authorization = req.header("authorization");
-
-            if (optional_authorization) |authorization| {
-                if (std.mem.startsWith(u8, authorization, scheme)) {
-                    const encoded = authorization[scheme.len..];
-
-                    const decoder = std.base64.standard.Decoder;
-
-                    const bufsize = decoder.calcSizeForSlice(encoded) catch break :authorized false;
-                    if (bufsize != self.config.credential.len) break :authorized false;
-
-                    const got = try self.allocator.alloc(u8, bufsize);
-                    defer self.allocator.free(got);
-
-                    decoder.decode(got, encoded) catch break :authorized false;
-
-                    if (!std.mem.eql(u8, got, self.config.credential)) break :authorized false;
-
-                    break :authorized true;
-                }
-            }
-
-            break :authorized false;
-        };
-
-        if (!authorized) {
+        if (!try self.isAuthorized(req)) {
             respondError(res, .unauthorized);
-        } else {
-            return executor.next();
         }
+
+        return executor.next();
     }
 };
 
