@@ -13,10 +13,10 @@ pub const PrintOptions = struct {
 
 pub const Variables = struct {
     pub const VTable = struct {
-        print: *const fn (context: *anyopaque, writer: *std.Io.Writer, name: []const u8) anyerror!bool,
+        print: *const fn (context: *const anyopaque, writer: *std.Io.Writer, name: []const u8) anyerror!bool,
     };
 
-    context: *anyopaque,
+    context: *const anyopaque,
     vtable: *const VTable,
 
     pub fn print(self: Variables, writer: *std.Io.Writer, name: []const u8) !bool {
