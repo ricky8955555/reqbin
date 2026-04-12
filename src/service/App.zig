@@ -166,14 +166,11 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
             return;
         }
     }
-
     if (bin.methods) |methods| {
-        for (methods.value) |method| {
-            if (method == req.method) break;
-        } else {
+        _ = std.mem.indexOfScalar(httpz.Method, methods.value, req.method) orelse {
             respondError(res, .method_not_allowed);
             return;
-        }
+        };
     }
 
     var capture = models.Capture{
