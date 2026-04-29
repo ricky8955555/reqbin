@@ -269,8 +269,13 @@ pub const Responding = union(enum) {
         body: []const u8,
     };
 
+    pub const Proxy = struct {
+        target: []const u8,
+    };
+
     capture: void,
     template: Template,
+    proxy: Proxy,
 };
 
 pub const SubpathRule = enum(u8) {

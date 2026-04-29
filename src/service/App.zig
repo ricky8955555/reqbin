@@ -9,6 +9,7 @@ const db = @import("../core/db.zig");
 const origin = @import("../utils/origin.zig");
 const models = @import("../core/models.zig");
 const network = @import("../utils/network.zig");
+const proxy = @import("../utils/proxy.zig");
 const response_template = @import("template.zig");
 const Template = @import("../utils/Template.zig");
 
@@ -221,6 +222,20 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
         },
         .capture => {
             try res.json(capture, .{});
+        },
+        .proxy => |options| {
+            proxy.proxy(allocator, req, res, .{
+                .base_url = options.target,
+                .path = .{ .overwrite = subpath },
+            }) catch |err| {
+                var writer = res.writer();
+                try writer.print("Failed to proxy request: {any}", .{err});
+
+                res.setStatus(.internal_server_error);
+                res.content_type = .TEXT;
+
+                return;
+            };
         },
     }
 }
