@@ -15,10 +15,11 @@ const Template = @import("../utils/Template.zig");
 
 pub const Context = struct {
     allocator: std.mem.Allocator,
+    io: std.Io,
+
     db: *sqlite.Db,
 
     auth: ?[]const u8 = null,
-
     trusted_proxies: []const network.Network,
 };
 
@@ -79,7 +80,7 @@ pub fn init(ctx: *Context, config: httpz.Config) !App {
         ._api_middlewares = undefined,
     };
 
-    app.server = try httpz.Server(*Context).init(ctx.allocator, config, ctx);
+    app.server = try httpz.Server(*Context).init(ctx.io, ctx.allocator, config, ctx);
 
     var router = try app.server.router(.{});
 
@@ -182,7 +183,7 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
         .query = if (bin.query) .{ .value = .{ .httpz = (try req.query()).* } } else null,
         .subpath = if (bin.subpath == .accept) subpath else null,
         .body = if (bin.body) req.body() else null,
-        .time = .{ .value = zdt.Datetime.nowUTC() },
+        .time = .{ .value = zdt.Datetime.nowUTC(ctx.io) },
     };
 
     try db.captures.add(ctx.db, arena.allocator(), &capture);
@@ -224,7 +225,7 @@ fn captureAccess(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
             try res.json(capture, .{});
         },
         .proxy => |options| {
-            proxy.proxy(allocator, req, res, .{
+            proxy.proxy(allocator, ctx.io, req, res, .{
                 .base_url = options.target,
                 .path = .{ .overwrite = subpath },
             }) catch |err| {
@@ -401,14 +402,14 @@ fn deleteCapture(ctx: *Context, req: *httpz.Request, res: *httpz.Response) !void
     res.setStatus(.no_content);
 }
 
-fn serveDashboard(_: *Context, _: *httpz.Request, res: *httpz.Response) !void {
+fn serveDashboard(ctx: *Context, _: *httpz.Request, res: *httpz.Response) !void {
     res.content_type = .HTML;
 
     if (builtin.mode == .Debug) {
-        const file = try std.fs.cwd().openFile("assets/dashboard.html", .{ .mode = .read_only });
+        const file = try std.Io.Dir.cwd().openFile(ctx.io, "assets/dashboard.html", .{ .mode = .read_only });
 
         var reader_buffer: [4096]u8 = undefined;
-        var reader = file.reader(&reader_buffer);
+        var reader = file.reader(ctx.io, &reader_buffer);
 
         _ = try reader.interface.streamRemaining(res.writer());
     } else {

@@ -19,7 +19,7 @@ const Config = struct {
     auth: ?[]const u8 = null,
     trusted_proxies: ?[]const u8 = null,
 
-    pub fn parseFromEnvMap(envs: std.process.EnvMap) !Config {
+    pub fn parseFromEnvMap(envs: *std.process.Environ.Map) !Config {
         var config = Config{};
 
         inline for (@typeInfo(Config).@"struct".fields) |field| {
@@ -60,35 +60,13 @@ const Config = struct {
     }
 };
 
-pub fn main() !void {
-    var debug_allocator = std.heap.DebugAllocator(.{}).init;
-    const allocator, const is_debug = allocator: {
-        switch (builtin.mode) {
-            .Debug, .ReleaseSafe => {
-                break :allocator .{ debug_allocator.allocator(), true };
-            },
-            .ReleaseFast, .ReleaseSmall => {
-                if (builtin.link_libc) {
-                    if (@alignOf(std.c.max_align_t) < @max(@alignOf(i128), std.atomic.cache_line)) {
-                        break :allocator .{ std.heap.c_allocator, false };
-                    }
-                    break :allocator .{ std.heap.raw_c_allocator, false };
-                }
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
 
-                break :allocator .{ std.heap.smp_allocator, false };
-            },
-        }
-    };
-    defer if (is_debug) {
-        _ = debug_allocator.deinit();
-    };
+    const config = try Config.parseFromEnvMap(init.environ_map);
+    const allocator = init.arena.allocator();
 
-    var envs = try std.process.getEnvMap(allocator);
-    defer envs.deinit();
-
-    const config = try Config.parseFromEnvMap(envs);
-
-    const trusted_proxies, const trusted_proxies_allocated = trusted_proxies: {
+    const trusted_proxies = trusted_proxies: {
         if (config.trusted_proxies) |trusted_proxies_str| {
             var trusted_proxies = try std.ArrayList(Network).initCapacity(allocator, 16);
             defer trusted_proxies.deinit(allocator);
@@ -99,17 +77,13 @@ pub fn main() !void {
                 try trusted_proxies.append(allocator, network);
             }
 
-            break :trusted_proxies .{ try trusted_proxies.toOwnedSlice(allocator), true };
+            break :trusted_proxies try trusted_proxies.toOwnedSlice(allocator);
         } else {
-            break :trusted_proxies .{ &.{}, false };
+            break :trusted_proxies &.{};
         }
-    };
-    defer if (trusted_proxies_allocated) {
-        allocator.free(trusted_proxies);
     };
 
     const database = try allocator.dupeZ(u8, config.database);
-    defer allocator.free(database);
 
     var db = try sqlite.Db.init(.{
         .mode = .{ .File = database },
@@ -120,14 +94,14 @@ pub fn main() !void {
 
     var ctx = reqbin.App.Context{
         .allocator = allocator,
+        .io = io,
         .db = &db,
         .auth = config.auth,
         .trusted_proxies = trusted_proxies,
     };
 
     var app = try reqbin.App.init(&ctx, .{
-        .address = config.address,
-        .port = config.port,
+        .address = .{ .ip = try .parse(config.address, config.port) },
         .request = .{
             .max_body_size = config.max_body_size,
             .max_header_count = config.max_header_count,

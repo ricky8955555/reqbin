@@ -40,7 +40,7 @@ fn isSpace(ch: u8) bool {
 }
 
 pub fn parse(allocator: std.mem.Allocator, template: []const u8) !Template {
-    var blocks = std.ArrayList(Block){};
+    var blocks = std.ArrayList(Block).empty;
     defer blocks.deinit(allocator);
 
     var state: enum { raw, variable, escape } = .raw;

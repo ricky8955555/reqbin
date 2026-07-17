@@ -33,16 +33,16 @@
     // internet connectivity.
     .dependencies = .{
         .sqlite = .{
-            .url = "git+https://github.com/vrischmann/zig-sqlite#0b75ba276d34de3141ec1697e3ef7c836d7b38e7",
-            .hash = "sqlite-3.48.0-F2R_a8eODgD9X8XjvWlZ1K7C-tDuHae4FuShM2N-yIT2",
+            .url = "git+https://github.com/vrischmann/zig-sqlite.git#946d77c526258760b52836187af32d1a192c5d36",
+            .hash = "sqlite-3.48.0-F2R_azCQDgBGaWDIX4g2vxKpuqzYEQOOfAeJGMNocPu0",
         },
         .httpz = .{
-            .url = "git+https://github.com/karlseguin/http.zig?ref=master#a4477b1dbdc5b820fd4ad301797ca6399f7eb6e4",
-            .hash = "httpz-0.0.0-PNVzrBgtBwCVkSJyophIX6WHwDR0r8XhBGQr96Kk-1El",
+            .url = "git+https://github.com/karlseguin/http.zig.git?ref=master#01dc09453ae50b82cc74ac2f90e9cd57e0b38500",
+            .hash = "httpz-0.0.0-PNVzrEnoCAAwAtnht2430lpr-ynyNpLeTpoy_-lmWyhD",
         },
         .zdt = .{
-            .url = "git+https://codeberg.org/FObersteiner/zdt?ref=v0.8.1#514658c852d2026b1acf2c7975d35eea3dba423e",
-            .hash = "zdt-0.8.1-xr0_vAxUDwCJRDh9pcAS_mdZBIsvcGTtN-K8JJSWY4I6",
+            .url = "git+https://codeberg.org/FObersteiner/zdt.git?ref=v0.9.4#11d537ef9b6a35d9b77a6423aa259386c5d6709e",
+            .hash = "zdt-0.9.4-xr0_vELOEQCUrb17-jnp9GRJJzyq0s9CHGu7qBq8vypF",
         },
     },
     .paths = .{

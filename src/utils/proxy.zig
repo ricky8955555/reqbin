@@ -100,8 +100,8 @@ fn translateHeaders(allocator: std.mem.Allocator, headers: *const httpz.key_valu
     };
 }
 
-pub fn proxy(allocator: std.mem.Allocator, req: *httpz.Request, res: *httpz.Response, options: Options) !void {
-    var client = http.Client{ .allocator = allocator };
+pub fn proxy(allocator: std.mem.Allocator, io: std.Io, req: *httpz.Request, res: *httpz.Response, options: Options) !void {
+    var client = http.Client{ .allocator = allocator, .io = io };
     defer client.deinit();
 
     const method = try translateMethod(req.method);

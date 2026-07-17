@@ -16,11 +16,11 @@ pub const Ip4Network = struct {
         return @as(u32, std.math.maxInt(u32)) >> @intCast(self.prefix_len);
     }
 
-    fn addrToInt(addr: std.net.Ip4Address) u32 {
-        return std.mem.nativeToBig(u32, addr.sa.addr);
+    fn addrToInt(addr: std.Io.net.Ip4Address) u32 {
+        return std.mem.readInt(u32, &addr.bytes, .big);
     }
 
-    pub fn init(network: std.net.Ip4Address, prefix_len: u8) !Ip4Network {
+    pub fn init(network: std.Io.net.Ip4Address, prefix_len: u8) !Ip4Network {
         if (prefix_len > 32) return error.Overflow;
 
         const addr = addrToInt(network);
@@ -33,12 +33,12 @@ pub const Ip4Network = struct {
 
     pub fn parse(network: []const u8) !Ip4Network {
         if (std.mem.indexOfScalar(u8, network, '/')) |slash_pos| {
-            const addr = try std.net.Ip4Address.parse(network[0..slash_pos], 0);
+            const addr = try std.Io.net.Ip4Address.parse(network[0..slash_pos], 0);
             const prefix_len = try std.fmt.parseInt(u8, network[slash_pos + 1 ..], 10);
 
             return Ip4Network.init(addr, prefix_len);
         } else {
-            const addr = try std.net.Ip4Address.parse(network, 0);
+            const addr = try std.Io.net.Ip4Address.parse(network, 0);
 
             return Ip4Network.init(addr, 32);
         }
@@ -50,7 +50,7 @@ pub const Ip4Network = struct {
         try w.print("{d}.{d}.{d}.{d}/{d}", .{ bytes[0], bytes[1], bytes[2], bytes[3], self.prefix_len });
     }
 
-    pub fn isHost(self: Ip4Network, host: std.net.Ip4Address) bool {
+    pub fn isHost(self: Ip4Network, host: std.Io.net.Ip4Address) bool {
         const addr = addrToInt(host);
         return (addr & self.networkMask()) == self.addr;
     }
@@ -69,11 +69,11 @@ pub const Ip6Network = struct {
         return @as(u128, std.math.maxInt(u128)) >> @intCast(self.prefix_len);
     }
 
-    fn addrToInt(addr: std.net.Ip6Address) u128 {
-        return std.mem.readInt(u128, &addr.sa.addr, .big);
+    fn addrToInt(addr: std.Io.net.Ip6Address) u128 {
+        return std.mem.readInt(u128, &addr.bytes, .big);
     }
 
-    pub fn init(network: std.net.Ip6Address, prefix_len: u8) !Ip6Network {
+    pub fn init(network: std.Io.net.Ip6Address, prefix_len: u8) !Ip6Network {
         if (prefix_len > 128) return error.Overflow;
 
         const addr = addrToInt(network);
@@ -86,19 +86,19 @@ pub const Ip6Network = struct {
 
     pub fn parse(network: []const u8) !Ip6Network {
         if (std.mem.indexOfScalar(u8, network, '/')) |slash_pos| {
-            const addr = try std.net.Ip6Address.parse(network[0..slash_pos], 0);
+            const addr = try std.Io.net.Ip6Address.parse(network[0..slash_pos], 0);
             const prefix_len = try std.fmt.parseInt(u8, network[slash_pos + 1 ..], 10);
 
             return Ip6Network.init(addr, prefix_len);
         } else {
-            const addr = try std.net.Ip6Address.parse(network, 0);
+            const addr = try std.Io.net.Ip6Address.parse(network, 0);
 
             return Ip6Network.init(addr, 128);
         }
     }
 
     pub fn format(self: Ip6Network, w: *std.Io.Writer) std.Io.Writer.Error!void {
-        // This function is modified from `std.net.Ip6Address.format`.
+        // This function is modified from `std.Io.net.Ip6Address.format`.
 
         const nativeAddr = std.mem.bigToNative(u128, self.addr);
         const bytes: *const [16]u8 = @ptrCast(&nativeAddr);
@@ -171,7 +171,7 @@ pub const Ip6Network = struct {
         try w.print("/{d}", .{self.prefix_len});
     }
 
-    pub fn isHost(self: Ip6Network, host: std.net.Ip6Address) bool {
+    pub fn isHost(self: Ip6Network, host: std.Io.net.Ip6Address) bool {
         const addr = addrToInt(host);
         return (addr & self.networkMask()) == self.addr;
     }
@@ -184,27 +184,26 @@ pub const Network = union(enum) {
     pub fn parse(network: []const u8) !Network {
         const addr, const prefix_len = parse: {
             if (std.mem.indexOfScalar(u8, network, '/')) |slash_pos| {
-                const addr = try std.net.Address.parseIp(network[0..slash_pos], 0);
+                const addr = try std.Io.net.IpAddress.parse(network[0..slash_pos], 0);
                 const prefix_len = try std.fmt.parseInt(u8, network[slash_pos + 1 ..], 10);
 
                 break :parse .{ addr, prefix_len };
             } else {
-                const addr = try std.net.Address.parseIp(network, 0);
+                const addr = try std.Io.net.IpAddress.parse(network, 0);
 
                 break :parse .{ addr, null };
             }
         };
 
-        switch (addr.any.family) {
-            std.posix.AF.INET => {
-                const ip4_network = try Ip4Network.init(addr.in, prefix_len orelse 32);
+        switch (addr) {
+            .ip4 => |ip4_address| {
+                const ip4_network = try Ip4Network.init(ip4_address, prefix_len orelse 32);
                 return .{ .ip4 = ip4_network };
             },
-            std.posix.AF.INET6 => {
-                const ip6_network = try Ip6Network.init(addr.in6, prefix_len orelse 128);
+            .ip6 => |ip6_address| {
+                const ip6_network = try Ip6Network.init(ip6_address, prefix_len orelse 128);
                 return .{ .ip6 = ip6_network };
             },
-            else => unreachable,
         }
     }
 
@@ -215,15 +214,19 @@ pub const Network = union(enum) {
         }
     }
 
-    pub fn isHost(self: Network, host: std.net.Address) bool {
+    pub fn isHost(self: Network, host: std.Io.net.IpAddress) bool {
         switch (self) {
             .ip4 => |network| {
-                if (host.any.family != std.posix.AF.INET) return false;
-                return network.isHost(host.in);
+                return switch (host) {
+                    .ip4 => |ip4| network.isHost(ip4),
+                    else => false,
+                };
             },
             .ip6 => |network| {
-                if (host.any.family != std.posix.AF.INET6) return false;
-                return network.isHost(host.in6);
+                return switch (host) {
+                    .ip6 => |ip6| network.isHost(ip6),
+                    else => false,
+                };
             },
         }
     }

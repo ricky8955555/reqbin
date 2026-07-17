@@ -4,7 +4,7 @@ const httpz = @import("httpz");
 
 const network = @import("network.zig");
 
-inline fn isTrustedProxy(address: std.net.Address, trusted_proxies: []const network.Network) bool {
+inline fn isTrustedProxy(address: std.Io.net.IpAddress, trusted_proxies: []const network.Network) bool {
     for (trusted_proxies) |proxy| {
         if (proxy.isHost(address)) return true;
     }
@@ -12,7 +12,7 @@ inline fn isTrustedProxy(address: std.net.Address, trusted_proxies: []const netw
     return false;
 }
 
-pub fn retrieveRemoteAddr(request: *httpz.Request, trusted_proxies: []const network.Network) std.net.Address {
+pub fn retrieveRemoteAddr(request: *httpz.Request, trusted_proxies: []const network.Network) std.Io.net.IpAddress {
     var address = request.address;
 
     if (isTrustedProxy(address, trusted_proxies)) trusted: {
@@ -21,13 +21,13 @@ pub fn retrieveRemoteAddr(request: *httpz.Request, trusted_proxies: []const netw
 
             while (ip_iter.next()) |part| {
                 const ip = std.mem.trim(u8, part, " ");
-                address = std.net.Address.parseIp(ip, 0) catch break :trusted;
+                address = std.Io.net.IpAddress.parse(ip, 0) catch break :trusted;
                 if (!isTrustedProxy(address, trusted_proxies)) break :trusted;
             }
         }
 
         if (request.header("x-real-ip")) |x_real_ip| {
-            address = std.net.Address.parseIp(x_real_ip, 0) catch break :trusted;
+            address = std.Io.net.IpAddress.parse(x_real_ip, 0) catch break :trusted;
         }
     }
 
