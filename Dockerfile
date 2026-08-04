@@ -1,7 +1,12 @@
 FROM kassany/alpine-ziglang:0.16.0 AS build
 
-WORKDIR /build
+USER root:root
+
+WORKDIR /app
 COPY . .
+
+# workaround for zig 0.16.0 fetch bug.
+RUN mkdir -p $HOME/.cache/zig/tmp
 
 RUN zig build --release=safe
 
