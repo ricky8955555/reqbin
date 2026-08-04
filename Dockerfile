@@ -1,4 +1,4 @@
-FROM kassany/ziglang AS build
+FROM kassany/ziglang:0.16.0 AS build
 
 WORKDIR /build
 COPY . .
