@@ -18,7 +18,7 @@ RUN wget -O /usr/local/bin/dbmate https://github.com/amacneil/dbmate/releases/la
 
 WORKDIR /app
 
-COPY --from=build /build/zig-out/bin/reqbin /usr/local/bin
+COPY --from=build /app/zig-out/bin/reqbin /usr/local/bin
 
 COPY db ./db
 COPY docker-entrypoint.sh /
