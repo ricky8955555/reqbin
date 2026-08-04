@@ -1,4 +1,4 @@
-FROM denisgolius/zig:0.15.2 AS build
+FROM kassany/ziglang AS build
 
 WORKDIR /build
 COPY . .
@@ -6,7 +6,7 @@ COPY . .
 RUN zig build --release=safe
 
 
-FROM alpine:3.22.2
+FROM alpine:latest
 
 RUN wget -O /usr/local/bin/dbmate https://github.com/amacneil/dbmate/releases/latest/download/dbmate-linux-amd64 && \
     chmod +x /usr/local/bin/dbmate
