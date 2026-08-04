@@ -3,7 +3,7 @@ FROM kassany/ziglang:0.16.0 AS build
 WORKDIR /build
 COPY . .
 
-RUN zig build --release=safe
+RUN ["zig", "build", "--release=safe"]
 
 
 FROM alpine:latest
