@@ -177,6 +177,18 @@ Render response from template.
 7. `cookies`: Raw cookie in header
 8. `cookies.*`: Specified cookie value
 
+##### proxy
+
+Proxy request to and respond from specific target.
+
+```jsonc
+{
+    "proxy": {
+        "target": "https://example.com"  // The proxy target.
+    }
+}
+```
+
 #### Capture Model
 
 ```jsonc
