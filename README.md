@@ -115,21 +115,21 @@ Then access the application via <http://localhost:7280>.
 
 ```jsonc
 {
-    "id": 1,                // ID of the bin in database
-    "name": "foo",          // Bin's name
-    "body": true,           // Collect requests' body or not
-    "query": true,          // Collect requests' query or not
-    "headers": false,       // Collect requests' headers or not
-    "subpath": "reject",    // Subpath rule (Possible values: reject, ignore, accept)
-    "ips": [                // Restrict source ip if set, otherwise, the source will not be checked.
-        "127.0.0.1/32"
-    ],
-    "methods": [            // Restrict requests' methods
-        "POST"              // Possible values: GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, OTHER
-    ],
-    "responding": {         // Response settings (refer to `Responding` model)
-        "capture": {}
-    }
+  "id": 1,                // ID of the bin in database
+  "name": "foo",          // Bin's name
+  "body": true,           // Collect requests' body or not
+  "query": true,          // Collect requests' query or not
+  "headers": false,       // Collect requests' headers or not
+  "subpath": "reject",    // Subpath rule (Possible values: reject, ignore, accept)
+  "ips": [                // Restrict source ip if set, otherwise, the source will not be checked.
+      "127.0.0.1/32"
+  ],
+  "methods": [            // Restrict requests' methods
+      "POST"              // Possible values: GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, OTHER
+  ],
+  "responding": {         // Response settings (refer to `Responding` model)
+      "capture": {}
+  }
 },
 ```
 
@@ -141,7 +141,7 @@ Respond captured info in JSON.
 
 ```jsonc
 {
-    "capture": {}
+  "capture": {},
 }
 ```
 
@@ -151,13 +151,14 @@ Render response from template.
 
 ```jsonc
 {
-    "template": {
-        "status": 200,  // Status code of response
-        "headers": {  // Headers of response
-            "Content-Type": "application/json"
-        },
-        "body": "\\{\"token\": \"{cookies.token}\"\\}"  // Body template of response
-    }
+  "template": {
+    "status": 200, // Status code of response
+    "headers": {
+      // Headers of response
+      "Content-Type": "application/json",
+    },
+    "body": "\\{\"token\": \"{cookies.token}\"\\}", // Body template of response
+  },
 }
 ```
 
@@ -183,9 +184,9 @@ Proxy request to and respond from specific target.
 
 ```jsonc
 {
-    "proxy": {
-        "target": "https://example.com"  // The proxy target.
-    }
+  "proxy": {
+    "target": "https://example.com", // The proxy target.
+  },
 }
 ```
 
@@ -193,15 +194,15 @@ Proxy request to and respond from specific target.
 
 ```jsonc
 {
-    "id": 1,                            // ID of the capture in database
-    "bin": 1,                           // Bin ID the capture belongs to
-    "method": "POST",                   // Request method
-    "remote_addr": "127.0.0.1:23333",   // Client address
-    "headers": null,                    // Headers (always null if disabled)
-    "query": {},                        // Query params (always null if disabled)
-    "subpath": "/",                     // Subpath (always null if not accepted)
-    "body": "foobar",                   // Body (null if the function is disabled or the capture has no body)
-    "time": 1301965440                  // UTC unix timestamp of the capture
+  "id": 1, // ID of the capture in database
+  "bin": 1, // Bin ID the capture belongs to
+  "method": "POST", // Request method
+  "remote_addr": "127.0.0.1:23333", // Client address
+  "headers": null, // Headers (always null if disabled)
+  "query": {}, // Query params (always null if disabled)
+  "subpath": "/", // Subpath (always null if not accepted)
+  "body": "foobar", // Body (null if the function is disabled or the capture has no body)
+  "time": 1301965440, // UTC unix timestamp of the capture
 }
 ```
 
@@ -209,11 +210,12 @@ Proxy request to and respond from specific target.
 
 ```jsonc
 {
-    "total": 10,    // Total count of data
-    "count": 1,     // Count of data in the current page
-    "data": [       // Data in the current page
-        // ...
-    ],
+  "total": 10, // Total count of data
+  "count": 1, // Count of data in the current page
+  "data": [
+    // Data in the current page
+    // ...
+  ],
 }
 ```
 
@@ -221,8 +223,8 @@ Proxy request to and respond from specific target.
 
 ```jsonc
 {
-    "offset": 0,    // Data query offset
-    "limit": 20,    // Data query limit
+  "offset": 0, // Data query offset
+  "limit": 20, // Data query limit
 }
 ```
 
