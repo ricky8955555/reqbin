@@ -1,1143 +1,1100 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reqbin Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/default.min.css" rel="stylesheet">
-</head>
-
-<body>
-  <div x-data="app()">
-    <!-- Initialize Tooltips -->
-    <div x-init="initTooltips()"></div>
-    <!-- Try Authorization With Empty Credential -->
-    <div x-init="checkAuth()"></div>
-
-    <!-- Notifications -->
-    <div class="position-fixed w-50 start-50 translate-middle-x mt-2" style="z-index: 1100">
-      <template x-for="notification in notifications">
-        <div class="alert alert-dismissible my-2" role="alert" :class="`alert-${notification.level}`"
-          x-data="{ show: false }" x-init="$nextTick(() => show = true)" x-show="show" x-transition>
-          <span x-html="notification.message"></span>
-          <button type="button" class="btn-close" @click="unnotify(notification)"></button>
-        </div>
-      </template>
-    </div>
-
-    <!-- Authorization Page -->
-    <template x-if="!authorized">
-      <div class="mt-5 container">
-        <div class="text-center">
-          <h1>Reqbin</h1>
-          <p>Authorization Needed</p>
-        </div>
-        <form @submit.prevent="tryAuth()">
-          <div class="mb-3">
-            <label class="form-label">Username</label>
-            <input type="text" class="form-control" x-model="credential.username">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Password</label>
-            <input type="password" class="form-control" x-model="credential.password">
-          </div>
-          <button type="submit" class="btn btn-primary">Authorize</button>
-        </form>
-      </div>
-    </template>
-
-    <!-- Main Page -->
-    <template x-if="authorized">
-      <div>
-        <!-- Bin Selector -->
-        <div class="offcanvas offcanvas-start" id="binSelector" x-init="fetchBins()">
-          <div class="offcanvas-header">
-            <h5 class="offcanvas-title">Bins</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-          </div>
-          <div class="offcanvas-body">
-            <ul class="list-group">
-              <template x-for="bin in bins">
-                <li @click="activeBin = bin" class="list-group-item list-group-item-action"
-                  :class="{ 'active': activeBin && activeBin.id === bin.id }">
-                  <span x-text="bin.name"></span>
-                  <span><small>(ID: <span x-text="bin.id"></span>)</small></span>
-                </li>
-              </template>
-              <li class="list-group-item list-group-item-action" data-bs-toggle="modal"
-                data-bs-target="#updateBinDialog" @click="initUpdatingBin(false)">+ Create a bin ...</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- Bin Deleting Confirmation Dialog -->
-        <div class="modal fade" id="deleteBinDialog" tabindex="-1">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h1 class="modal-title fs-5">Delete Bin</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-              </div>
-              <div class="modal-body">
-                <p>Do you really want to <b>delete the bin and all the accesses it captured</b>?</p>
-                <p class="text-danger"><b>The action is IRREVERSIBLE!!!</b></p>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-danger" @click="deleteBin()"
-                  data-bs-dismiss="modal">Delete</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Capture Deleting Confirmation Dialog -->
-        <div class="modal fade" id="deleteCaptureDialog" tarequestdex="-1">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h1 class="modal-title fs-5">Delete Capture</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-              </div>
-              <div class="modal-body">
-                <p>Do you really want to <b>delete the capture</b>?</p>
-                <p class="text-danger"><b>The action is IRREVERSIBLE!!!</b></p>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-danger" @click="deleteCapture()"
-                  data-bs-dismiss="modal">Delete</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bin Clearing Confirmation Dialog -->
-        <div class="modal fade" id="clearBinDialog" tabindex="-1">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h1 class="modal-title fs-5">Clear Bin</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-              </div>
-              <div class="modal-body">
-                <p>Do you really want to <b>clear all captures of the bin</b>?</p>
-                <p class="text-danger"><b>The action is IRREVERSIBLE!!!</b></p>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-danger" @click="clearBin()" data-bs-dismiss="modal">Clear</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bin Creating/Updating Dialog -->
-        <div class="modal fade" id="updateBinDialog" data-bs-backdrop="static" tabindex="-1">
-          <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h1 class="modal-title fs-5">Create/Update Bin</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-              </div>
-              <template x-if="updatingBin">
-                <div class="modal-body">
-                  <!-- Name -->
-                  <div class="mb-3">
-                    <label class="form-label">Name</label>
-                    <input type="text" class="form-control" placeholder="Foobar" x-model="updatingBin.name">
-                  </div>
-
-                  <!-- Capture Options -->
-                  <div class="mb-3">
-                    <div class="form-check">
-                      <input class="form-check-input" type="checkbox" x-model="updatingBin.body">
-                      <label class="form-check-label">Capture body</label>
-                    </div>
-                    <div class="form-check">
-                      <input class="form-check-input" type="checkbox" x-model="updatingBin.query">
-                      <label class="form-check-label">Capture query</label>
-                    </div>
-                    <div class="form-check">
-                      <input class="form-check-input" type="checkbox" x-model="updatingBin.headers">
-                      <label class="form-check-label">Capture headers</label>
-                    </div>
-                  </div>
-
-                  <!-- Subpath Rule -->
-                  <div class="mb-3">
-                    <label class="form-label">Subpath Rule</label>
-                    <select class="form-select" x-model="updatingBin.subpath">
-                      <template x-for="subpathRule in validSubpathRules">
-                        <option :value="subpathRule" x-text="subpathRule"
-                          :selected="updatingBin.subpath == subpathRule"></option>
-                      </template>
-                    </select>
-                  </div>
-
-                  <!-- Allowed IP Settings -->
-                  <div class="mb-2">
-                    <div class="form-check form-switch">
-                      <input class="form-check-input" type="checkbox" switch x-model="updatingBin.allowAnyIP">
-                      <label class="form-check-label">Allow any source</label>
-                    </div>
-                    <div class="my-3" x-show="!updatingBin.allowAnyIP">
-                      <label class="form-label">Allowed IPs</label>
-                      <template x-for="(ip, i) in updatingBin.ips">
-                        <div class="input-group">
-                          <input type="text" class="form-control rounded-0 border-bottom-0" :value="ip" readonly>
-                          <a href="#" class="input-group-text link-danger fs-5 lh-1 rounded-0 border-bottom-0"
-                            @click="updatingBin.ips.splice(i, 1)"><i class="bi bi-x"></i></a>
-                        </div>
-                      </template>
-                      <div class="input-group">
-                        <input type="text" class="form-control rounded-top-0" placeholder="Type allowed IP here..."
-                          x-model="updatingBin.newIP">
-                        <a href="#" class="input-group-text link-success fs-5 lh-1 rounded-top-0"
-                          @click="pushNewIP()"><i class="bi bi-plus"></i></a>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Allowed Method Settings -->
-                  <div class="mb-3">
-                    <div class="form-check form-switch">
-                      <input class="form-check-input" type="checkbox" switch x-model="updatingBin.allowAnyMethod">
-                      <label class="form-check-label">Allow any method</label>
-                    </div>
-                    <div class="my-3" x-show="!updatingBin.allowAnyMethod">
-                      <label class="form-label d-block">Allowed Methods</label>
-                      <template x-for="method in validMethods">
-                        <div class="form-check form-check-inline">
-                          <input class="form-check-input" type="checkbox" :value="method" x-model="updatingBin.methods">
-                          <label class="form-check-label" x-text="method"></label>
-                        </div>
-                      </template>
-                    </div>
-                  </div>
-
-                  <!-- Responding Settings -->
-                  <div class="mb-3">
-                    <label class="form-label">Responding</label>
-                    <select class="form-select" x-model="updatingBin.responseType">
-                      <template x-for="responseType in validResponseTypes">
-                        <option :value="responseType" x-text="responseType"
-                          :selected="updatingBin.responseType === responseType"></option>
-                      </template>
-                    </select>
-
-                    <!-- Template Response Settings -->
-                    <div class="mt-3" x-show="updatingBin.responseType === 'template'">
-                      <!-- General Settings -->
-                      <label class="form-label">Response Settings</label>
-                      <div class="input-group mb-3">
-                        <span class="input-group-text">Status</span>
-                        <input type="number" class="form-control" x-model="updatingBin.template.status">
-                      </div>
-
-                      <!-- Headers -->
-                      <div class="mb-3">
-                        <label class="form-label">Response Headers</label>
-                        <template x-for="[name, value] of Object.entries(updatingBin.template.headers)">
-                          <div class="input-group">
-                            <input type="text" class="form-control rounded-0 border-bottom-0"
-                              :value="`${name}: ${value}`" readonly>
-                            <a href="#" class="input-group-text link-danger fs-5 lh-1 rounded-0 border-bottom-0"
-                              @click="delete updatingBin.template.headers[name]"><i class="bi bi-x"></i></a>
-                          </div>
-                        </template>
-                        <div class="input-group">
-                          <input type="text" class="form-control rounded-top-0"
-                            placeholder="Type response header here..." x-model="updatingBin.newResponseHeader">
-                          <a href="#" class="input-group-text link-success fs-5 lh-1 rounded-top-0"
-                            @click="pushNewResponseHeader()"><i class="bi bi-plus"></i></a>
-                        </div>
-                      </div>
-
-                      <!-- Body Template -->
-                      <div class="mb-3">
-                        <label class="form-label">Body Template</label>
-                        <textarea class="form-control" x-model="updatingBin.template.body"></textarea>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </template>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" @click="updateBin()">Submit</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <header>
-          <!-- Navbar -->
-          <nav class="navbar bg-body-tertiary">
-            <div class="container-fluid">
-              <a class="navbar-brand" href="#" data-bs-toggle="offcanvas" data-bs-target="#binSelector">
-                <span x-text="activeBin ? activeBin.name : 'Click here to select bin'"></span>
-                <template x-if="activeBin"><span><small>(ID: <span
-                        x-text="activeBin.id"></span>)</small></span></template>
-              </a>
-            </div>
-          </nav>
-        </header>
-
-        <main class="container mt-4 mt-md-5">
-          <!-- Initialize Captures Page Updater -->
-          <div x-init="initCapturePageUpdater()"></div>
-
-          <!-- Bin Component -->
-          <template x-if="activeBin">
-            <div>
-              <!-- Actions -->
-              <div class="d-flex justify-content-md-end mb-5 mb-md-0 row g-1 row-cols-auto">
-                <div class="col">
-                  <button class="btn btn-outline-info" @click="copyEndpoint()">Copy Endpoint</button>
-                </div>
-                <div class="col">
-                  <button class="btn btn-outline-secondary" @click="loadBin()">Reload</button>
-                </div>
-                <div class="col">
-                  <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#updateBinDialog"
-                    @click="initUpdatingBin(true)">Update</button>
-                </div>
-                <div class="col">
-                  <button class="btn btn-outline-warning" data-bs-toggle="modal"
-                    data-bs-target="#clearBinDialog">Clear</button>
-                </div>
-                <div class="col">
-                  <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal"
-                    data-bs-target="#deleteBinDialog">Delete</button>
-                </div>
-              </div>
-
-              <!-- General Info -->
-              <div>
-                <div class="fs-3 fw-medium mb-2">General</div>
-                <span class="badge text-bg-primary" x-show="activeBin.body" data-bs-toggle="tooltip"
-                  data-bs-placement="top" data-bs-title="Capture Body">Body</span>
-                <span class="badge text-bg-primary" x-show="activeBin.query" data-bs-toggle="tooltip"
-                  data-bs-placement="top" data-bs-title="Capture Query">Query</span>
-                <span class="badge text-bg-primary" x-show="activeBin.headers" data-bs-toggle="tooltip"
-                  data-bs-placement="top" data-bs-title="Capture Headers">Headers</span>
-                <span class="badge text-bg-info" x-show="activeBin.subpath === 'ignore'" data-bs-toggle="tooltip"
-                  data-bs-placement="top" data-bs-title="Ignore Subpath">*Subpath</span>
-                <span class="badge text-bg-success" x-show="activeBin.subpath === 'accept'" data-bs-toggle="tooltip"
-                  data-bs-placement="top" data-bs-title="Capture Subpath">Subpath</span>
-                <template x-for="method in (activeBin.methods ?? ['ANY'])">
-                  <span>
-                    <span class="badge text-bg-secondary" x-text="method" data-bs-toggle="tooltip"
-                      data-bs-placement="top" data-bs-title="Allowed Method"></span>
-                  </span>
-                </template>
-              </div>
-
-              <!-- Allowed IPs -->
-              <div class="mt-5">
-                <div class="mb-2">
-                  <span class="fs-3 fw-medium">Allowed IPs</span>
-                  <span class="ms-3 badge text-bg-success" data-bs-toggle="tooltip" data-bs-placement="top"
-                    data-bs-title="Capture accesses from IPs specified below only"
-                    x-show="activeBin.ips">Activated</span>
-                  <span class="ms-3 badge text-bg-warning" data-bs-toggle="tooltip" data-bs-placement="top"
-                    data-bs-title="Capture all accesses from any source" x-show="!activeBin.ips">Unset</span>
-                </div>
-                <template x-if="activeBin.ips">
-                  <ul class="list-group list-group">
-                    <template x-for="ip in activeBin.ips">
-                      <li class="list-group-item" x-text="ip"></li>
-                    </template>
-                  </ul>
-                </template>
-              </div>
-
-              <!-- Responding -->
-              <div class="mt-5">
-                <div class="mb-3">
-                  <span class="fs-3 fw-medium">Responding</span>
-                  <span class="ms-3 badge text-bg-info" data-bs-toggle="tooltip" data-bs-placement="top"
-                    data-bs-title="Respond captured info in JSON" x-show="activeBin.responding.capture">Capture</span>
-                  <span class="ms-3 badge text-bg-info" data-bs-toggle="tooltip" data-bs-placement="top"
-                    data-bs-title="Render response from template" x-show="activeBin.responding.template">Template</span>
-                </div>
-
-                <!-- Template Response -->
-                <template x-if="activeBin.responding.template">
-                  <div class="row">
-                    <!-- Left Grid (General & Headers) -->
-                    <div class="col-md-6">
-                      <!-- General -->
-                      <h5 class="mb-3">General</h5>
-                      <ul class="list-group mb-3" style="font-size: .9rem">
-                        <li class="list-group-item lh-sm">
-                          <div class="row">
-                            <div class="col-md-4 fw-medium">Status</div>
-                            <div class="col-md-8">
-                              <code x-text="activeBin.responding.template.status"></code>
-                            </div>
-                          </div>
-                        </li>
-                      </ul>
-
-                      <!-- Headers -->
-                      <h5 class="mb-3">Headers</h5>
-                      <ul class="list-group mb-3" style="font-size: .9rem" x-data="{ headers: null }"
-                        x-effect="headers = Object.entries(activeBin.responding.template.headers)">
-                        <template x-if="headers.length === 0">
-                          <li class="list-group-item">
-                            No headers
-                          </li>
-                        </template>
-                        <template x-if="headers.length > 0">
-                          <template x-for="[name, value] of headers">
-                            <li class="list-group-item lh-sm">
-                              <div class="row">
-                                <div class="col-md-4 fw-medium" x-text="name">
-                                </div>
-                                <div class="col-md-8">
-                                  <code x-text="value"></code>
-                                </div>
-                              </div>
-                            </li>
-                          </template>
-                        </template>
-                      </ul>
-                    </div>
-
-                    <!-- Right Grid (Body Template) -->
-                    <div class="col-md-6">
-                      <!-- Body Template -->
-                      <h5 class="mb-3">Body Template</h5>
-                      <div class="border px-3 py-2 mb-3 rounded">
-                        <pre class="mb-0"
-                          x-html="hljs.highlightAuto(renderBody(activeBin.responding.template.body)).value"></pre>
-                      </div>
-                    </div>
-                  </div>
-                </template>
-              </div>
-
-              <!-- Captures -->
-              <div class="mt-5">
-                <div class="d-md-flex justify-content-md-between align-items-center mb-2">
-                  <div class="fs-3 fw-medium mb-2 mb-md-0">Captures</div>
-
-                  <div class="row row-cols-md-auto g-2 align-items-center">
-                    <!-- Decending Switch -->
-                    <div class="col-12">
-                      <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" switch x-model="captureConfig.desc">
-                        <label class="form-check-label">
-                          Descending
-                        </label>
-                      </div>
-                    </div>
-
-                    <!-- Page Size Selector -->
-                    <div class="col-12">
-                      <select class="form-select form-select-inline" x-model="captureConfig.limit">
-                        <template x-for="limit in [10, 20, 50, 100]">
-                          <option :value="limit"><span x-text="limit"></span> / Page</option>
-                        </template>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Table -->
-                <div class="accordion mt-2" x-id="['capture-detail']">
-                  <template x-for="capture in captures.data" :key="capture.id">
-                    <div class="accordion-item">
-                      <!-- Header (Summary) -->
-                      <div class="accordion-header">
-                        <button class="accordion-button py-2 collapsed" type="button" data-bs-toggle="collapse"
-                          :data-bs-target="`#${$id('capture-detail', capture.id)}`">
-                          <div class="row w-100">
-                            <div class="col-md-4" x-text="timestampToDate(capture.time).toLocaleString()"></div>
-                            <div class="col-md-2" x-text="capture.method"></div>
-                            <div class="col-md-6" x-text="capture.remote_addr"></div>
-                          </div>
-                        </button>
-                      </div>
-
-                      <!-- Collapsed Body (Detail)-->
-                      <div class="accordion-collapse collapse" :id="$id('capture-detail', capture.id)">
-                        <div class="accordion-body pt-3 pb-1">
-                          <div class="row">
-                            <!-- Left Grid (Subpath & Headers & Query) -->
-                            <div class="col-lg-6">
-                              <!-- Subpath -->
-                              <h5 class="mb-3">Subpath</h5>
-                              <div class="border px-3 py-2 mb-3 rounded">
-                                <pre class="mb-0" x-text="capture.subpath ? capture.subpath : 'No subpath'"></pre>
-                              </div>
-
-                              <!-- Headers -->
-                              <h5 class="mb-3">Headers</h5>
-                              <ul class="list-group mb-3" style="font-size: .9rem" x-data="{ headers: null }"
-                                x-effect="headers = capture.headers ? Object.entries(capture.headers) : []">
-                                <template x-if="headers.length === 0">
-                                  <li class="list-group-item">
-                                    No headers
-                                  </li>
-                                </template>
-                                <template x-if="headers.length > 0">
-                                  <template x-for="[name, value] of headers">
-                                    <li class="list-group-item lh-sm">
-                                      <div class="row">
-                                        <div class="col-md-4 fw-medium" x-text="name">
-                                        </div>
-                                        <div class="col-md-8">
-                                          <code x-text="value"></code>
-                                        </div>
-                                      </div>
-                                    </li>
-                                  </template>
-                                </template>
-                              </ul>
-
-                              <!-- Query -->
-                              <h5 class="mb-3 mt-3">Query</h5>
-                              <ul class="list-group mb-3" style="font-size: .9rem" x-data="{ query: null }"
-                                x-effect="query = capture.query ? Object.entries(capture.query) : []">
-                                <template x-if="query.length === 0">
-                                  <li class="list-group-item">
-                                    No query parameters
-                                  </li>
-                                </template>
-                                <template x-if="query.length > 0">
-                                  <template x-for="[name, value] of query">
-                                    <li class="list-group-item lh-sm">
-                                      <div class="row">
-                                        <div class="col-md-4">
-                                          <b x-text="name"></b>
-                                        </div>
-                                        <div class="col-md-8">
-                                          <code x-text="value"></code>
-                                        </div>
-                                      </div>
-                                    </li>
-                                  </template>
-                                </template>
-                              </ul>
-                            </div>
-
-                            <!-- Right Grid (Body) -->
-                            <div class="col-lg-6">
-                              <!-- Body -->
-                              <h5 class="mb-3">Body</h5>
-                              <div class="border px-3 py-2 mb-3 rounded">
-                                <pre class="mb-0" x-html="hljs.highlightAuto(renderBody(capture.body)).value"></pre>
-                              </div>
-                            </div>
-                          </div>
-
-                          <!-- Actions -->
-                          <div class="mb-3">
-                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal"
-                              data-bs-target="#deleteCaptureDialog" @click="activeCapture = capture">Delete</button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </template>
-                </div>
-
-                <!-- Pagination -->
-                <nav class="mt-3">
-                  <ul class="pagination">
-                    <!-- First Page -->
-                    <li class="page-item"><a class="page-link" href="#" @click="capturePage = 0">&laquo;</a>
-                    </li>
-                    <!-- Previous Page -->
-                    <li class="page-item" x-show="capturePage > 1"><a class="page-link" href="#"
-                        @click="capturePage -= 2">...</a>
-                    </li>
-                    <li class="page-item" x-show="capturePage > 0"><a class="page-link" href="#" x-text="capturePage"
-                        @click="capturePage--"></a></li>
-                    <!-- Current Page -->
-                    <li class="page-item"><a class="page-link active" href="#" x-text="capturePage + 1"></a></li>
-                    <!-- Next Page -->
-                    <li class="page-item" x-show="capturePage < captures.pages - 1"><a class="page-link" href="#"
-                        x-text="capturePage + 2" @click="capturePage++"></a></li>
-                    <li class="page-item" x-show="capturePage < captures.pages - 2"><a class="page-link" href="#"
-                        @click="capturePage += 2">...</a>
-                    </li>
-                    <!-- Last Page -->
-                    <li class="page-item"><a class="page-link" href="#"
-                        @click="capturePage = Math.max(0, captures.pages - 1)">&raquo;</a></li>
-                  </ul>
-                </nav>
-              </div>
-            </div>
-          </template>
-        </main>
-      </div>
-    </template>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js"></script>
-
-  <script>
-    // @ts-check
-
-    /** @type {any} */
-    var bootstrap;
-
-    /**
-     * @typedef {Object} Template
-     * @property {number} status
-     * @property {any} headers
-     * @property {string} body
-     */
-
-    /**
-     * @typedef {Object} Responding
-     * @property {{} | undefined} [capture]
-     * @property {Template | undefined} [template]
-     */
-
-    /**
-     * @typedef {Object} Bin
-     * @property {number?} id
-     * @property {string} name
-     * @property {boolean} body
-     * @property {boolean} query
-     * @property {boolean} headers
-     * @property {"reject" | "ignore" | "accept"} subpath
-     * @property {string[]?} ips
-     * @property {string[]?} methods
-     * @property {Responding} responding
-     */
-
-    /**
-     * @typedef {Object} UpdatingBin
-     * @property {number?} id
-     * @property {string} name
-     * @property {boolean} body
-     * @property {boolean} query
-     * @property {boolean} headers
-     * @property {"reject" | "ignore" | "accept"} subpath
-     * @property {boolean} allowAnyIP
-     * @property {string[]} ips
-     * @property {string} newIP
-     * @property {boolean} allowAnyMethod
-     * @property {string[]} methods
-     * @property {"capture" | "template"} responseType
-     * @property {string} newResponseHeader
-     * @property {Template} template
-     */
-
-    /**
-     * @typedef {Object} Capture
-     * @property {number} id
-     * @property {number} bin
-     * @property {string} method
-     * @property {string} remote_addr
-     * @property {any} headers
-     * @property {any} query
-     * @property {string} subpath
-     * @property {string?} body
-     * @property {number} time
-     */
-
-    /**
-     * @template T
-     * @typedef {Object} Page
-     * @property {number} total
-     * @property {number} count
-     * @property {T[]} data
-     */
-
-    /**
-     * @typedef {Object} BasicAuth
-     * @property {string} username
-     * @property {string} password
-     */
-
-    /**
-     * @typedef {Object} Notify
-     * @property {string} level
-     * @property {string} message
-     */
-
-    /** @type {string[]} */
-    /** @constant */
-    const validMethods = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "CONNECT"];
-    /** @type {string[]} */
-    /** @constant */
-    const validResponseTypes = ["capture", "template"];
-    /** @type {string[]} */
-    /** @constant */
-    const validSubpathRules = ["reject", "ignore", "accept"];
-
-    const app = () => ({
-      /** @type {boolean} */
-      authorized: false,
-      /** @type {BasicAuth} */
-      credential: {
-        username: "",
-        password: "",
-      },
-
-      /** @type {Bin?} */
-      activeBin: null,
-      /** @type {Capture?} */
-      activeCapture: null,
-
-      /** @type {Bin[]} */
-      bins: [],
-
-      captureConfig: {
-        /** @type {number} */
-        limit: 10,
-        /** @type {boolean} */
-        desc: true,
-      },
-
-      /** @type {number} */
-      capturePage: 0,
-
-      captures: {
-        /** @type {number} */
-        pages: 0,
-        /** @type {number} */
-        total: 0,
-        /** @type {Capture[]} */
-        data: [],
-      },
-
-      /** @type {UpdatingBin?} */
-      updatingBin: null,
-
-      /** @type {Notify[]} */
-      notifications: [],
-
-      /** @type {function(string, function)} */
-      $watch: /** @type {any} */(undefined),
-
-      /**
-       * @param {RequestInfo | URL} input
-       * @param {RequestInit} [init]
-       * @param {boolean} [notifyError]
-       * @param {boolean} [throwOnFailed]
-       * @returns {Promise<Response>}
-       */
-      async fetch(input, init, notifyError = true, throwOnFailed = true) {
-        const credential = this.ensureCredential();
-        if (credential !== null) {
-          if (init === undefined) init = {};
-          if (init.headers === undefined) init.headers = {};
-          /** @type {Record<string, string>} **/(init.headers)["Authorization"] = "Basic " + btoa(`${credential.username}:${credential.password}`);
-        }
-
-        try {
-          const response = await fetch(input, init);
-          if (throwOnFailed && !response.ok) {
-            const text = await response.text();
-            throw new Error(`${response.status}: ${text}`);
-          }
-          return response;
-        } catch (/** @type {any} */ ex) {
-          if (notifyError) this.notify(ex, "danger");
-          throw ex;
-        }
-      },
-
-      /**
-       * @param {string} [keyword]
-       * @returns {Promise<void>}
-       */
-      async fetchBins(keyword = "") {
-        this.bins = [];
-
-        const limit = 20;
-
-        const url = new URL("/api/bins", window.location.origin);
-        url.searchParams.append("limit", limit.toString());
-
-        for (let offset = 0; ; offset += limit) {
-          url.searchParams.set("offset", offset.toString());
-
-          const resp = await this.fetch(url);
-          /** @type {Page<Bin>} */
-          const body = await resp.json();
-
-          this.bins = [...this.bins, ...body.data];
-
-          if (body.count < limit) break;
-        }
-
-        this.notify(`Load bin list successfully.`, "info", 1500);
-      },
-
-      /**
-       * @param {string?} [name]
-       * @returns {Promise<void>}
-       */
-      async loadBin(name = null) {
-        if (name === null) {
-          if (this.activeBin === null) return;
-          name = this.activeBin.name;
-        }
-
-        const resp = await this.fetch(`/api/bins/${encodeURI(name)}`);
-        /** @type {Bin} */
-        const bin = await resp.json();
-
-        this.activeBin = bin;
-
-        this.notify(`Bin '${name}' loaded successfully.`, "info", 1500);
-      },
-
-      /**
-       * @returns {Promise<void>}
-       */
-      async loadCapturePage() {
-        const bin = /** @type {Bin} */(this.activeBin);
-
-        const offset = this.capturePage * this.captureConfig.limit;
-
-        const url = new URL(`/api/bins/${encodeURI(bin.name)}/captures`, window.location.origin);
-        url.searchParams.append("offset", offset.toString());
-        url.searchParams.append("limit", this.captureConfig.limit.toString());
-
-        if (this.captureConfig.desc) url.searchParams.append("desc", "true");
-
-        const resp = await this.fetch(url);
-        /** @type {Page<Capture>} */
-        const body = await resp.json();
-
-        this.captures.total = body.total;
-        this.captures.pages = Math.ceil(body.total / this.captureConfig.limit);
-        this.captures.data = body.data;
-      },
-
-      /**
-       * @returns {Promise<void>}
-       */
-      async deleteBin() {
-        const bin = /** @type {Bin} */(this.activeBin);
-
-        await this.fetch(`/api/bins/${encodeURI(bin.name)}`, { method: "DELETE" });
-
-        this.notify(`Bin '${bin.name}' has been deleted successfully.`, "success");
-
-        this.activeBin = null;
-        await this.fetchBins();
-      },
-
-      /**
-       * @returns {Promise<void>}
-       */
-      async clearBin() {
-        const bin = /** @type {Bin} */(this.activeBin);
-
-        await this.fetch(`/api/bins/${encodeURI(bin.name)}/captures`, { method: "DELETE" });
-
-        this.notify(`Bin '${bin.name}' has been cleared successfully.`, "success");
-
-        await this.loadBin();
-      },
-
-      /**
-       * @returns {void}
-       */
-      initCapturePageUpdater() {
-        const reload = () => {
-          this.capturePage = 0;
-          this.loadCapturePage();
-        };
-
-        this.$watch('activeBin', reload);
-        this.$watch('captureConfig', reload);
-        this.$watch('capturePage', () => this.loadCapturePage());
-      },
-
-      /**
-       * @returns {void}
-       */
-      initTooltips() {
-        const tooltips = [];
-        const initialized = new Set();
-
-        const callback = () => {
-          const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-
-          for (const tooltipTrigger of tooltipTriggerList) {
-            if (!initialized.has(tooltipTrigger)) {
-              tooltips.push(new bootstrap.Tooltip(tooltipTrigger));
-              initialized.add(tooltipTrigger);
-            }
-          }
-        };
-
-        const observer = new MutationObserver(callback);
-        observer.observe(document.body, { attributes: true, childList: true, subtree: true });
-      },
-
-      /**
-       * @param {any} obj
-       * @returns {string}
-       */
-      renderPrettyJson(obj) {
-        return JSON.stringify(obj, null, 2);
-      },
-
-      /**
-       * @param {string} body
-       * @returns {string}
-       */
-      renderBody(body) {
-        if (body === null || body === "") return "(empty)";
-        return body;
-      },
-
-      /**
-       * @param {number} timestamp
-       * @returns {Date}
-       */
-      timestampToDate(timestamp) {
-        return new Date(timestamp * 1000);
-      },
-
-      /**
-       * @returns {BasicAuth?}
-       */
-      ensureCredential() {
-        if (this.credential.username === "" || this.credential.password === "") return null;
-        return this.credential;
-      },
-
-      /**
-       * @returns {Promise<void>}
-       */
-      async checkAuth() {
-        if (this.authorized) return;
-
-        const url = new URL("/api/bins", window.location.origin);
-        url.searchParams.append("limit", "1");
-
-        const resp = await this.fetch(url, {}, true, false);
-        if (resp.status === 401) return;
-
-        this.authorized = true;
-      },
-
-      /**
-       * @returns {Promise<void>}
-       */
-      async tryAuth() {
-        await this.checkAuth();
-
-        if (!this.authorized) {
-          this.notify("Invalid credential.", "danger");
-        }
-      },
-
-      /**
-       * @param {boolean} copy
-       * @returns {void}
-       */
-      initUpdatingBin(copy) {
-        /** @type {Template} */
-        const defaultTemplate = {
-          status: 200,
-          headers: {},
-          body: "",
-        };
-
-        if (copy && this.activeBin !== null) {
-          const bin = this.activeBin;
-          const template = bin.responding.template;
-
-          this.updatingBin = {
-            id: bin.id,
-            name: bin.name,
-            body: bin.body,
-            query: bin.query,
-            headers: bin.headers,
-            subpath: bin.subpath,
-            allowAnyIP: bin.ips === null,
-            ips: bin.ips !== null ? [...bin.ips] : [],
-            allowAnyMethod: bin.methods === null,
-            methods: bin.methods !== null ? [...bin.methods] : [],
-            newIP: "",
-            responseType: /** @type {"capture" | "template"} */ (Object.entries(bin.responding)[0][0]),
-            newResponseHeader: "",
-            template: template !== undefined ? JSON.parse(JSON.stringify(template)) : defaultTemplate,
-          }
-        } else {
-          this.updatingBin = {
-            id: null,
-            name: "",
-            body: true,
-            query: true,
-            headers: true,
-            subpath: "reject",
-            allowAnyIP: true,
-            ips: [],
-            allowAnyMethod: true,
-            methods: [],
-            newIP: "",
-            responseType: "capture",
-            newResponseHeader: "",
-            template: defaultTemplate,
-          };
-        }
-      },
-
-      /**
-       * @returns {void}
-       */
-      pushNewIP() {
-        const bin = /** @type {UpdatingBin} */(this.updatingBin);
-
-        // modified from https://github.com/silverwind/cidr-regex/blob/master/index.ts (licensed under the BSD 2-Clause "Simplified" License)
-        const pattern = /^(?:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}(?:\/(3[0-2]|[12]?[0-9]))?)|(?:(?:(?:[a-fA-F\d]{1,4}:){7}(?:[a-fA-F\d]{1,4}|:)|(?:[a-fA-F\d]{1,4}:){6}(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}|:[a-fA-F\d]{1,4}|:)|(?:[a-fA-F\d]{1,4}:){5}(?::(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}|(?::[a-fA-F\d]{1,4}){1,2}|:)|(?:[a-fA-F\d]{1,4}:){4}(?:(?::[a-fA-F\d]{1,4})?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}|(?::[a-fA-F\d]{1,4}){1,3}|:)|(?:[a-fA-F\d]{1,4}:){3}(?:(?::[a-fA-F\d]{1,4}){0,2}:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}|(?::[a-fA-F\d]{1,4}){1,4}|:)|(?:[a-fA-F\d]{1,4}:){2}(?:(?::[a-fA-F\d]{1,4}){0,3}:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}|(?::[a-fA-F\d]{1,4}){1,5}|:)|[a-fA-F\d]{1,4}:(?:(?::[a-fA-F\d]{1,4}){0,4}:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}|(?::[a-fA-F\d]{1,4}){1,6}|:)|:(?:(?::[a-fA-F\d]{1,4}){0,5}:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}|(?::[a-fA-F\d]{1,4}){1,7}|:))(?:%[0-9a-zA-Z]+)?(?:\/(12[0-8]|1[01][0-9]|[1-9]?[0-9]))?))$/;
-        if (pattern.test(bin.newIP)) {
-          bin.ips.push(bin.newIP);
-          bin.newIP = "";
-        } else {
-          this.notify("Invalid IP format.", "danger");
-        }
-      },
-
-      /**
-       * @returns {void}
-       */
-      pushNewResponseHeader() {
-        if (this.updatingBin === null) return;
-
-        const pattern = /^(?<name>[\w\-]+): ?(?<value>.+)$/;
-        const result = pattern.exec(this.updatingBin.newResponseHeader);
-
-        if (result === null || result.groups === undefined) {
-          this.notify("Invalid header.", "danger");
-          return;
-        }
-
-        this.updatingBin.template.headers[result.groups["name"]] = result.groups["value"] ?? "";
-        this.updatingBin.newResponseHeader = "";
-      },
-
-      /**
-       * @returns {Promise<void>}
-       */
-      async updateBin() {
-        const updatingBin = /** @type {UpdatingBin} */(this.updatingBin);
-
-        if (updatingBin.name === "") {
-          this.notify("Bin name cannot be empty.", "danger");
-          return;
-        }
-
-        /** @type {Responding} */
-        const responding = (() => {
-          switch (updatingBin.responseType) {
-            case "capture":
-              return { capture: {} };
-            case "template":
-              return { template: updatingBin.template }
-          }
-        })();
-
-        /** @type {Bin} **/
-        const bin = {
-          id: updatingBin.id,
-          name: updatingBin.name,
-          body: updatingBin.body,
-          query: updatingBin.query,
-          headers: updatingBin.headers,
-          subpath: updatingBin.subpath,
-          ips: updatingBin.allowAnyIP ? null : updatingBin.ips,
-          methods: updatingBin.allowAnyMethod ? null : updatingBin.methods,
-          responding,
-        };
-
-        await this.fetch("/api/bins", {
-          method: "PUT",
-          body: JSON.stringify(bin),
-        });
-
-        this.notify("Create/Update bin successfully.", "success");
-
-        await this.loadBin(bin.name);
-        await this.fetchBins();
-      },
-
-      /**
-       * @param {string} message
-       * @param {string} [level]
-       * @param {number} [timeout]
-       * @param {boolean} [escape]
-       * @returns {void}
-       */
-      notify(message, level = "info", timeout = 3000, escape = true) {
-        if (escape) {
-          message = new Option(message).innerHTML;
-        }
-
-        const notification = {
-          level: level,
-          message: message,
-        };
-        this.notifications.push(notification);
-
-        if (timeout > 0) {
-          setTimeout(() => this.unnotify(notification), timeout);
-        }
-      },
-
-      /**
-       * @param {Notify} notification
-       * @returns {void}
-       */
-      unnotify(notification) {
-        const index = this.notifications.indexOf(notification);
-        if (index !== -1) this.notifications.splice(index, 1);
-      },
-
-      /**
-       * @returns {void}
-       */
-      copyEndpoint() {
-        const bin = /** @type {Bin} */(this.activeBin);
-
-        const endpoint = new URL(`/access/${bin.name}`, window.location.origin);
-        const endpointText = endpoint.toString();
-
-        try {
-          navigator.clipboard.writeText(endpointText);
-          this.notify("Endpoint has been copied to clipboard successfully.", "success");
-        } catch {
-          this.notify(`Failed to copy endpoint to clipboard. Please copy it manually: <code>${endpointText}</code>`, "warning", 0, false);
-        }
-      },
-
-      /**
-       * @returns {Promise<void>}
-       */
-      async deleteCapture() {
-        const bin = /** @type {Bin} */(this.activeBin);
-        const capture = /** @type {Capture} */(this.activeCapture);
-
-        await this.fetch(`/api/bins/${encodeURI(bin.name)}/captures/${capture.id}`, { method: "DELETE" });
-
-        this.notify(`Capture has been deleted successfully.`, "success");
-
-        this.activeCapture = null;
-        await this.loadCapturePage();
-      }
-    });
-  </script>
-</body>
-
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Reqbin Dashboard</title>
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" rel="stylesheet">
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1/font/bootstrap-icons.min.css" rel="stylesheet">
+		<link href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/default.min.css" rel="stylesheet">
+	</head>
+
+	<body>
+		<div x-data="app()">
+			<!-- Initialize Tooltips -->
+			<div x-init="initTooltips()"></div>
+			<!-- Try Authorization With Empty Credential -->
+			<div x-init="checkAuth()"></div>
+
+			<!-- Notifications -->
+			<div class="position-fixed w-50 start-50 translate-middle-x mt-2" style="z-index: 1100">
+				<template x-for="notification in notifications">
+					<div class="alert alert-dismissible my-2" role="alert" :class="`alert-${notification.level}`" x-data="{ show: false }" x-init="$nextTick(() => show = true)" x-show="show" x-transition>
+						<span x-html="notification.message"></span>
+						<button type="button" class="btn-close" @click="unnotify(notification)"></button>
+					</div>
+				</template>
+			</div>
+
+			<!-- Authorization Page -->
+			<template x-if="!authorized">
+				<div class="mt-5 container">
+					<div class="text-center">
+						<h1>Reqbin</h1>
+						<p>Authorization Needed</p>
+					</div>
+					<form @submit.prevent="tryAuth()">
+						<div class="mb-3">
+							<label class="form-label">Username</label>
+							<input type="text" class="form-control" x-model="credential.username">
+						</div>
+						<div class="mb-3">
+							<label class="form-label">Password</label>
+							<input type="password" class="form-control" x-model="credential.password">
+						</div>
+						<button type="submit" class="btn btn-primary">Authorize</button>
+					</form>
+				</div>
+			</template>
+
+			<!-- Main Page -->
+			<template x-if="authorized">
+				<div>
+					<!-- Bin Selector -->
+					<div class="offcanvas offcanvas-start" id="binSelector" x-init="fetchBins()">
+						<div class="offcanvas-header">
+							<h5 class="offcanvas-title">Bins</h5>
+							<button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+						</div>
+						<div class="offcanvas-body">
+							<ul class="list-group">
+								<template x-for="bin in bins">
+									<li @click="activeBin = bin" class="list-group-item list-group-item-action" :class="{ 'active': activeBin && activeBin.id === bin.id }">
+										<span x-text="bin.name"></span>
+										<span><small>(ID: <span x-text="bin.id"></span>)</small></span>
+									</li>
+								</template>
+								<li class="list-group-item list-group-item-action" data-bs-toggle="modal" data-bs-target="#updateBinDialog" @click="initUpdatingBin(false)">+ Create a bin ...</li>
+							</ul>
+						</div>
+					</div>
+
+					<!-- Bin Deleting Confirmation Dialog -->
+					<div class="modal fade" id="deleteBinDialog" tabindex="-1">
+						<div class="modal-dialog">
+							<div class="modal-content">
+								<div class="modal-header">
+									<h1 class="modal-title fs-5">Delete Bin</h1>
+									<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+								</div>
+								<div class="modal-body">
+									<p>Do you really want to <b>delete the bin and all the accesses it captured</b>?</p>
+									<p class="text-danger"><b>The action is IRREVERSIBLE!!!</b></p>
+								</div>
+								<div class="modal-footer">
+									<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+									<button type="button" class="btn btn-danger" @click="deleteBin()" data-bs-dismiss="modal">Delete</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Capture Deleting Confirmation Dialog -->
+					<div class="modal fade" id="deleteCaptureDialog" tarequestdex="-1">
+						<div class="modal-dialog">
+							<div class="modal-content">
+								<div class="modal-header">
+									<h1 class="modal-title fs-5">Delete Capture</h1>
+									<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+								</div>
+								<div class="modal-body">
+									<p>Do you really want to <b>delete the capture</b>?</p>
+									<p class="text-danger"><b>The action is IRREVERSIBLE!!!</b></p>
+								</div>
+								<div class="modal-footer">
+									<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+									<button type="button" class="btn btn-danger" @click="deleteCapture()" data-bs-dismiss="modal">Delete</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Bin Clearing Confirmation Dialog -->
+					<div class="modal fade" id="clearBinDialog" tabindex="-1">
+						<div class="modal-dialog">
+							<div class="modal-content">
+								<div class="modal-header">
+									<h1 class="modal-title fs-5">Clear Bin</h1>
+									<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+								</div>
+								<div class="modal-body">
+									<p>Do you really want to <b>clear all captures of the bin</b>?</p>
+									<p class="text-danger"><b>The action is IRREVERSIBLE!!!</b></p>
+								</div>
+								<div class="modal-footer">
+									<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+									<button type="button" class="btn btn-danger" @click="clearBin()" data-bs-dismiss="modal">Clear</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Bin Creating/Updating Dialog -->
+					<div class="modal fade" id="updateBinDialog" data-bs-backdrop="static" tabindex="-1">
+						<div class="modal-dialog modal-lg">
+							<div class="modal-content">
+								<div class="modal-header">
+									<h1 class="modal-title fs-5">Create/Update Bin</h1>
+									<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+								</div>
+								<template x-if="updatingBin">
+									<div class="modal-body">
+										<!-- Name -->
+										<div class="mb-3">
+											<label class="form-label">Name</label>
+											<input type="text" class="form-control" placeholder="Foobar" x-model="updatingBin.name">
+										</div>
+
+										<!-- Capture Options -->
+										<div class="mb-3">
+											<div class="form-check">
+												<input class="form-check-input" type="checkbox" x-model="updatingBin.body">
+												<label class="form-check-label">Capture body</label>
+											</div>
+											<div class="form-check">
+												<input class="form-check-input" type="checkbox" x-model="updatingBin.query">
+												<label class="form-check-label">Capture query</label>
+											</div>
+											<div class="form-check">
+												<input class="form-check-input" type="checkbox" x-model="updatingBin.headers">
+												<label class="form-check-label">Capture headers</label>
+											</div>
+										</div>
+
+										<!-- Subpath Rule -->
+										<div class="mb-3">
+											<label class="form-label">Subpath Rule</label>
+											<select class="form-select" x-model="updatingBin.subpath">
+												<template x-for="subpathRule in validSubpathRules">
+													<option :value="subpathRule" x-text="subpathRule" :selected="updatingBin.subpath == subpathRule"></option>
+												</template>
+											</select>
+										</div>
+
+										<!-- Allowed IP Settings -->
+										<div class="mb-2">
+											<div class="form-check form-switch">
+												<input class="form-check-input" type="checkbox" switch x-model="updatingBin.allowAnyIP">
+												<label class="form-check-label">Allow any source</label>
+											</div>
+											<div class="my-3" x-show="!updatingBin.allowAnyIP">
+												<label class="form-label">Allowed IPs</label>
+												<template x-for="(ip, i) in updatingBin.ips">
+													<div class="input-group">
+														<input type="text" class="form-control rounded-0 border-bottom-0" :value="ip" readonly>
+														<a href="#" class="input-group-text link-danger fs-5 lh-1 rounded-0 border-bottom-0" @click="updatingBin.ips.splice(i, 1)"><i class="bi bi-x"></i></a>
+													</div>
+												</template>
+												<div class="input-group">
+													<input type="text" class="form-control rounded-top-0" placeholder="Type allowed IP here..." x-model="updatingBin.newIP">
+													<a href="#" class="input-group-text link-success fs-5 lh-1 rounded-top-0" @click="pushNewIP()"><i class="bi bi-plus"></i></a>
+												</div>
+											</div>
+										</div>
+
+										<!-- Allowed Method Settings -->
+										<div class="mb-3">
+											<div class="form-check form-switch">
+												<input class="form-check-input" type="checkbox" switch x-model="updatingBin.allowAnyMethod">
+												<label class="form-check-label">Allow any method</label>
+											</div>
+											<div class="my-3" x-show="!updatingBin.allowAnyMethod">
+												<label class="form-label d-block">Allowed Methods</label>
+												<template x-for="method in validMethods">
+													<div class="form-check form-check-inline">
+														<input class="form-check-input" type="checkbox" :value="method" x-model="updatingBin.methods">
+														<label class="form-check-label" x-text="method"></label>
+													</div>
+												</template>
+											</div>
+										</div>
+
+										<!-- Responding Settings -->
+										<div class="mb-3">
+											<label class="form-label">Responding</label>
+											<select class="form-select" x-model="updatingBin.responseType">
+												<template x-for="responseType in validResponseTypes">
+													<option :value="responseType" x-text="responseType" :selected="updatingBin.responseType === responseType"></option>
+												</template>
+											</select>
+
+											<!-- Template Response Settings -->
+											<div class="mt-3" x-show="updatingBin.responseType === 'template'">
+												<!-- General Settings -->
+												<label class="form-label">Response Settings</label>
+												<div class="input-group mb-3">
+													<span class="input-group-text">Status</span>
+													<input type="number" class="form-control" x-model="updatingBin.template.status">
+												</div>
+
+												<!-- Headers -->
+												<div class="mb-3">
+													<label class="form-label">Response Headers</label>
+													<template x-for="[name, value] of Object.entries(updatingBin.template.headers)">
+														<div class="input-group">
+															<input type="text" class="form-control rounded-0 border-bottom-0" :value="`${name}: ${value}`" readonly>
+															<a href="#" class="input-group-text link-danger fs-5 lh-1 rounded-0 border-bottom-0" @click="delete updatingBin.template.headers[name]"><i class="bi bi-x"></i></a>
+														</div>
+													</template>
+													<div class="input-group">
+														<input type="text" class="form-control rounded-top-0" placeholder="Type response header here..." x-model="updatingBin.newResponseHeader">
+														<a href="#" class="input-group-text link-success fs-5 lh-1 rounded-top-0" @click="pushNewResponseHeader()"><i class="bi bi-plus"></i></a>
+													</div>
+												</div>
+
+												<!-- Body Template -->
+												<div class="mb-3">
+													<label class="form-label">Body Template</label>
+													<textarea class="form-control" x-model="updatingBin.template.body"></textarea>
+												</div>
+											</div>
+										</div>
+									</div>
+								</template>
+								<div class="modal-footer">
+									<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+									<button type="button" class="btn btn-primary" @click="updateBin()">Submit</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<header>
+						<!-- Navbar -->
+						<nav class="navbar bg-body-tertiary">
+							<div class="container-fluid">
+								<a class="navbar-brand" href="#" data-bs-toggle="offcanvas" data-bs-target="#binSelector">
+									<span x-text="activeBin ? activeBin.name : 'Click here to select bin'"></span>
+									<template x-if="activeBin"><span><small>(ID: <span x-text="activeBin.id"></span>)</small></span></template>
+								</a>
+							</div>
+						</nav>
+					</header>
+
+					<main class="container mt-4 mt-md-5">
+						<!-- Initialize Captures Page Updater -->
+						<div x-init="initCapturePageUpdater()"></div>
+
+						<!-- Bin Component -->
+						<template x-if="activeBin">
+							<div>
+								<!-- Actions -->
+								<div class="d-flex justify-content-md-end mb-5 mb-md-0 row g-1 row-cols-auto">
+									<div class="col">
+										<button class="btn btn-outline-info" @click="copyEndpoint()">Copy Endpoint</button>
+									</div>
+									<div class="col">
+										<button class="btn btn-outline-secondary" @click="loadBin()">Reload</button>
+									</div>
+									<div class="col">
+										<button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#updateBinDialog" @click="initUpdatingBin(true)">Update</button>
+									</div>
+									<div class="col">
+										<button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#clearBinDialog">Clear</button>
+									</div>
+									<div class="col">
+										<button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteBinDialog">Delete</button>
+									</div>
+								</div>
+
+								<!-- General Info -->
+								<div>
+									<div class="fs-3 fw-medium mb-2">General</div>
+									<span class="badge text-bg-primary" x-show="activeBin.body" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Capture Body">Body</span>
+									<span class="badge text-bg-primary" x-show="activeBin.query" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Capture Query">Query</span>
+									<span class="badge text-bg-primary" x-show="activeBin.headers" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Capture Headers">Headers</span>
+									<span class="badge text-bg-info" x-show="activeBin.subpath === 'ignore'" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Ignore Subpath">*Subpath</span>
+									<span class="badge text-bg-success" x-show="activeBin.subpath === 'accept'" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Capture Subpath">Subpath</span>
+									<template x-for="method in (activeBin.methods ?? ['ANY'])">
+										<span>
+											<span class="badge text-bg-secondary" x-text="method" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Allowed Method"></span>
+										</span>
+									</template>
+								</div>
+
+								<!-- Allowed IPs -->
+								<div class="mt-5">
+									<div class="mb-2">
+										<span class="fs-3 fw-medium">Allowed IPs</span>
+										<span class="ms-3 badge text-bg-success" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Capture accesses from IPs specified below only" x-show="activeBin.ips">Activated</span>
+										<span class="ms-3 badge text-bg-warning" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Capture all accesses from any source" x-show="!activeBin.ips">Unset</span>
+									</div>
+									<template x-if="activeBin.ips">
+										<ul class="list-group list-group">
+											<template x-for="ip in activeBin.ips">
+												<li class="list-group-item" x-text="ip"></li>
+											</template>
+										</ul>
+									</template>
+								</div>
+
+								<!-- Responding -->
+								<div class="mt-5">
+									<div class="mb-3">
+										<span class="fs-3 fw-medium">Responding</span>
+										<span class="ms-3 badge text-bg-info" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Respond captured info in JSON" x-show="activeBin.responding.capture">Capture</span>
+										<span class="ms-3 badge text-bg-info" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Render response from template" x-show="activeBin.responding.template">Template</span>
+									</div>
+
+									<!-- Template Response -->
+									<template x-if="activeBin.responding.template">
+										<div class="row">
+											<!-- Left Grid (General & Headers) -->
+											<div class="col-md-6">
+												<!-- General -->
+												<h5 class="mb-3">General</h5>
+												<ul class="list-group mb-3" style="font-size: .9rem">
+													<li class="list-group-item lh-sm">
+														<div class="row">
+															<div class="col-md-4 fw-medium">Status</div>
+															<div class="col-md-8">
+																<code x-text="activeBin.responding.template.status"></code>
+															</div>
+														</div>
+													</li>
+												</ul>
+
+												<!-- Headers -->
+												<h5 class="mb-3">Headers</h5>
+												<ul class="list-group mb-3" style="font-size: .9rem" x-data="{ headers: null }" x-effect="headers = Object.entries(activeBin.responding.template.headers)">
+													<template x-if="headers.length === 0">
+														<li class="list-group-item">
+															No headers
+														</li>
+													</template>
+													<template x-if="headers.length > 0">
+														<template x-for="[name, value] of headers">
+															<li class="list-group-item lh-sm">
+																<div class="row">
+																	<div class="col-md-4 fw-medium" x-text="name">
+																	</div>
+																	<div class="col-md-8">
+																		<code x-text="value"></code>
+																	</div>
+																</div>
+															</li>
+														</template>
+													</template>
+												</ul>
+											</div>
+
+											<!-- Right Grid (Body Template) -->
+											<div class="col-md-6">
+												<!-- Body Template -->
+												<h5 class="mb-3">Body Template</h5>
+												<div class="border px-3 py-2 mb-3 rounded">
+													<pre class="mb-0" x-html="hljs.highlightAuto(renderBody(activeBin.responding.template.body)).value"></pre>
+												</div>
+											</div>
+										</div>
+									</template>
+								</div>
+
+								<!-- Captures -->
+								<div class="mt-5">
+									<div class="d-md-flex justify-content-md-between align-items-center mb-2">
+										<div class="fs-3 fw-medium mb-2 mb-md-0">Captures</div>
+
+										<div class="row row-cols-md-auto g-2 align-items-center">
+											<!-- Decending Switch -->
+											<div class="col-12">
+												<div class="form-check form-switch">
+													<input class="form-check-input" type="checkbox" switch x-model="captureConfig.desc">
+													<label class="form-check-label">
+														Descending
+													</label>
+												</div>
+											</div>
+
+											<!-- Page Size Selector -->
+											<div class="col-12">
+												<select class="form-select form-select-inline" x-model="captureConfig.limit">
+													<template x-for="limit in [10, 20, 50, 100]">
+														<option :value="limit"><span x-text="limit"></span>
+														/ Page</option>
+													</template>
+												</select>
+											</div>
+										</div>
+									</div>
+
+									<!-- Table -->
+									<div class="accordion mt-2" x-id="['capture-detail']">
+										<template x-for="capture in captures.data" :key="capture.id">
+											<div class="accordion-item">
+												<!-- Header (Summary) -->
+												<div class="accordion-header">
+													<button class="accordion-button py-2 collapsed" type="button" data-bs-toggle="collapse" :data-bs-target="`#${$id('capture-detail', capture.id)}`">
+														<div class="row w-100">
+															<div class="col-md-4" x-text="timestampToDate(capture.time).toLocaleString()"></div>
+															<div class="col-md-2" x-text="capture.method"></div>
+															<div class="col-md-6" x-text="capture.remote_addr"></div>
+														</div>
+													</button>
+												</div>
+
+												<!-- Collapsed Body (Detail)-->
+												<div class="accordion-collapse collapse" :id="$id('capture-detail', capture.id)">
+													<div class="accordion-body pt-3 pb-1">
+														<div class="row">
+															<!-- Left Grid (Subpath & Headers & Query) -->
+															<div class="col-lg-6">
+																<!-- Subpath -->
+																<h5 class="mb-3">Subpath</h5>
+																<div class="border px-3 py-2 mb-3 rounded">
+																	<pre class="mb-0" x-text="capture.subpath ? capture.subpath : 'No subpath'"></pre>
+																</div>
+
+																<!-- Headers -->
+																<h5 class="mb-3">Headers</h5>
+																<ul class="list-group mb-3" style="font-size: .9rem" x-data="{ headers: null }" x-effect="headers = capture.headers ? Object.entries(capture.headers) : []">
+																	<template x-if="headers.length === 0">
+																		<li class="list-group-item">
+																			No headers
+																		</li>
+																	</template>
+																	<template x-if="headers.length > 0">
+																		<template x-for="[name, value] of headers">
+																			<li class="list-group-item lh-sm">
+																				<div class="row">
+																					<div class="col-md-4 fw-medium" x-text="name">
+																					</div>
+																					<div class="col-md-8">
+																						<code x-text="value"></code>
+																					</div>
+																				</div>
+																			</li>
+																		</template>
+																	</template>
+																</ul>
+
+																<!-- Query -->
+																<h5 class="mb-3 mt-3">Query</h5>
+																<ul class="list-group mb-3" style="font-size: .9rem" x-data="{ query: null }" x-effect="query = capture.query ? Object.entries(capture.query) : []">
+																	<template x-if="query.length === 0">
+																		<li class="list-group-item">
+																			No query parameters
+																		</li>
+																	</template>
+																	<template x-if="query.length > 0">
+																		<template x-for="[name, value] of query">
+																			<li class="list-group-item lh-sm">
+																				<div class="row">
+																					<div class="col-md-4">
+																						<b x-text="name"></b>
+																					</div>
+																					<div class="col-md-8">
+																						<code x-text="value"></code>
+																					</div>
+																				</div>
+																			</li>
+																		</template>
+																	</template>
+																</ul>
+															</div>
+
+															<!-- Right Grid (Body) -->
+															<div class="col-lg-6">
+																<!-- Body -->
+																<h5 class="mb-3">Body</h5>
+																<div class="border px-3 py-2 mb-3 rounded">
+																	<pre class="mb-0" x-html="hljs.highlightAuto(renderBody(capture.body)).value"></pre>
+																</div>
+															</div>
+														</div>
+
+														<!-- Actions -->
+														<div class="mb-3">
+															<button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCaptureDialog" @click="activeCapture = capture">Delete</button>
+														</div>
+													</div>
+												</div>
+											</div>
+										</template>
+									</div>
+
+									<!-- Pagination -->
+									<nav class="mt-3">
+										<ul class="pagination">
+											<!-- First Page -->
+											<li class="page-item"><a class="page-link" href="#" @click="capturePage = 0">&laquo;</a></li>
+											<!-- Previous Page -->
+											<li class="page-item" x-show="capturePage > 1"><a class="page-link" href="#" @click="capturePage -= 2">...</a></li>
+											<li class="page-item" x-show="capturePage > 0"><a class="page-link" href="#" x-text="capturePage" @click="capturePage--"></a></li>
+											<!-- Current Page -->
+											<li class="page-item"><a class="page-link active" href="#" x-text="capturePage + 1"></a></li>
+											<!-- Next Page -->
+											<li class="page-item" x-show="capturePage < captures.pages - 1"><a class="page-link" href="#" x-text="capturePage + 2" @click="capturePage++"></a></li>
+											<li class="page-item" x-show="capturePage < captures.pages - 2"><a class="page-link" href="#" @click="capturePage += 2">...</a></li>
+											<!-- Last Page -->
+											<li class="page-item"><a class="page-link" href="#" @click="capturePage = Math.max(0, captures.pages - 1)">&raquo;</a></li>
+										</ul>
+									</nav>
+								</div>
+							</div>
+						</template>
+					</main>
+				</div>
+			</template>
+		</div>
+
+		<script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/js/bootstrap.bundle.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js"></script>
+
+		<script>
+			// @ts-check
+
+			/** @type {any} */
+			var bootstrap;
+
+			/**
+			* @typedef {Object} Template
+			* @property {number} status
+			* @property {any} headers
+			* @property {string} body
+			*/
+
+			/**
+			* @typedef {Object} Responding
+			* @property {{} | undefined} [capture]
+			* @property {Template | undefined} [template]
+			*/
+
+			/**
+			* @typedef {Object} Bin
+			* @property {number?} id
+			* @property {string} name
+			* @property {boolean} body
+			* @property {boolean} query
+			* @property {boolean} headers
+			* @property {"reject" | "ignore" | "accept"} subpath
+			* @property {string[]?} ips
+			* @property {string[]?} methods
+			* @property {Responding} responding
+			*/
+
+			/**
+			* @typedef {Object} UpdatingBin
+			* @property {number?} id
+			* @property {string} name
+			* @property {boolean} body
+			* @property {boolean} query
+			* @property {boolean} headers
+			* @property {"reject" | "ignore" | "accept"} subpath
+			* @property {boolean} allowAnyIP
+			* @property {string[]} ips
+			* @property {string} newIP
+			* @property {boolean} allowAnyMethod
+			* @property {string[]} methods
+			* @property {"capture" | "template"} responseType
+			* @property {string} newResponseHeader
+			* @property {Template} template
+			*/
+
+			/**
+			* @typedef {Object} Capture
+			* @property {number} id
+			* @property {number} bin
+			* @property {string} method
+			* @property {string} remote_addr
+			* @property {any} headers
+			* @property {any} query
+			* @property {string} subpath
+			* @property {string?} body
+			* @property {number} time
+			*/
+
+			/**
+			* @template T
+			* @typedef {Object} Page
+			* @property {number} total
+			* @property {number} count
+			* @property {T[]} data
+			*/
+
+			/**
+			* @typedef {Object} BasicAuth
+			* @property {string} username
+			* @property {string} password
+			*/
+
+			/**
+			* @typedef {Object} Notify
+			* @property {string} level
+			* @property {string} message
+			*/
+
+			/** @type {string[]} */
+			/** @constant */
+			const validMethods = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "CONNECT"];
+			/** @type {string[]} */
+			/** @constant */
+			const validResponseTypes = ["capture", "template"];
+			/** @type {string[]} */
+			/** @constant */
+			const validSubpathRules = ["reject", "ignore", "accept"];
+
+			const app = () => ({
+				/** @type {boolean} */
+				authorized: false,
+				/** @type {BasicAuth} */
+				credential: {
+					username: "",
+					password: "",
+				},
+
+				/** @type {Bin?} */
+				activeBin: null,
+				/** @type {Capture?} */
+				activeCapture: null,
+
+				/** @type {Bin[]} */
+				bins: [],
+
+				captureConfig: {
+					/** @type {number} */
+					limit: 10,
+					/** @type {boolean} */
+					desc: true,
+				},
+
+				/** @type {number} */
+				capturePage: 0,
+
+				captures: {
+					/** @type {number} */
+					pages: 0,
+					/** @type {number} */
+					total: 0,
+					/** @type {Capture[]} */
+					data: [],
+				},
+
+				/** @type {UpdatingBin?} */
+				updatingBin: null,
+
+				/** @type {Notify[]} */
+				notifications: [],
+
+				/** @type {function(string, function)} */
+				$watch: /** @type {any} */(undefined),
+
+				/**
+				* @param {RequestInfo | URL} input
+				* @param {RequestInit} [init]
+				* @param {boolean} [notifyError]
+				* @param {boolean} [throwOnFailed]
+				* @returns {Promise<Response>}
+				*/
+				async fetch(input, init, notifyError = true, throwOnFailed = true) {
+					const credential = this.ensureCredential();
+					if (credential !== null) {
+						if (init === undefined) init = {};
+						if (init.headers === undefined) init.headers = {};
+						/** @type {Record<string, string>} **/(init.headers)["Authorization"] = "Basic " + btoa(`${credential.username}:${credential.password}`);
+					}
+
+					try {
+						const response = await fetch(input, init);
+						if (throwOnFailed && !response.ok) {
+							const text = await response.text();
+							throw new Error(`${response.status}: ${text}`);
+						}
+						return response;
+					} catch (/** @type {any} */ ex) {
+						if (notifyError) this.notify(ex, "danger");
+						throw ex;
+					}
+				},
+
+				/**
+				* @param {string} [keyword]
+				* @returns {Promise<void>}
+				*/
+				async fetchBins(keyword = "") {
+					this.bins = [];
+
+					const limit = 20;
+
+					const url = new URL("/api/bins", window.location.origin);
+					url.searchParams.append("limit", limit.toString());
+
+					for (let offset = 0; ; offset += limit) {
+						url.searchParams.set("offset", offset.toString());
+
+						const resp = await this.fetch(url);
+						/** @type {Page<Bin>} */
+						const body = await resp.json();
+
+						this.bins = [...this.bins, ...body.data];
+
+						if (body.count < limit) break;
+					}
+
+					this.notify(`Load bin list successfully.`, "info", 1500);
+				},
+
+				/**
+				* @param {string?} [name]
+				* @returns {Promise<void>}
+				*/
+				async loadBin(name = null) {
+					if (name === null) {
+						if (this.activeBin === null) return;
+						name = this.activeBin.name;
+					}
+
+					const resp = await this.fetch(`/api/bins/${encodeURI(name)}`);
+					/** @type {Bin} */
+					const bin = await resp.json();
+
+					this.activeBin = bin;
+
+					this.notify(`Bin '${name}' loaded successfully.`, "info", 1500);
+				},
+
+				/**
+				* @returns {Promise<void>}
+				*/
+				async loadCapturePage() {
+					const bin = /** @type {Bin} */(this.activeBin);
+
+					const offset = this.capturePage * this.captureConfig.limit;
+
+					const url = new URL(`/api/bins/${encodeURI(bin.name)}/captures`, window.location.origin);
+					url.searchParams.append("offset", offset.toString());
+					url.searchParams.append("limit", this.captureConfig.limit.toString());
+
+					if (this.captureConfig.desc) url.searchParams.append("desc", "true");
+
+					const resp = await this.fetch(url);
+					/** @type {Page<Capture>} */
+					const body = await resp.json();
+
+					this.captures.total = body.total;
+					this.captures.pages = Math.ceil(body.total / this.captureConfig.limit);
+					this.captures.data = body.data;
+				},
+
+				/**
+				* @returns {Promise<void>}
+				*/
+				async deleteBin() {
+					const bin = /** @type {Bin} */(this.activeBin);
+
+					await this.fetch(`/api/bins/${encodeURI(bin.name)}`, { method: "DELETE" });
+
+					this.notify(`Bin '${bin.name}' has been deleted successfully.`, "success");
+
+					this.activeBin = null;
+					await this.fetchBins();
+				},
+
+				/**
+				* @returns {Promise<void>}
+				*/
+				async clearBin() {
+					const bin = /** @type {Bin} */(this.activeBin);
+
+					await this.fetch(`/api/bins/${encodeURI(bin.name)}/captures`, { method: "DELETE" });
+
+					this.notify(`Bin '${bin.name}' has been cleared successfully.`, "success");
+
+					await this.loadBin();
+				},
+
+				/**
+				* @returns {void}
+				*/
+				initCapturePageUpdater() {
+					const reload = () => {
+						this.capturePage = 0;
+						this.loadCapturePage();
+					};
+
+					this.$watch('activeBin', reload);
+					this.$watch('captureConfig', reload);
+					this.$watch('capturePage', () => this.loadCapturePage());
+				},
+
+				/**
+				* @returns {void}
+				*/
+				initTooltips() {
+					const tooltips = [];
+					const initialized = new Set();
+
+					const callback = () => {
+						const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+
+						for (const tooltipTrigger of tooltipTriggerList) {
+							if (!initialized.has(tooltipTrigger)) {
+								tooltips.push(new bootstrap.Tooltip(tooltipTrigger));
+								initialized.add(tooltipTrigger);
+							}
+						}
+					};
+
+					const observer = new MutationObserver(callback);
+					observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+				},
+
+				/**
+				* @param {any} obj
+				* @returns {string}
+				*/
+				renderPrettyJson(obj) {
+					return JSON.stringify(obj, null, 2);
+				},
+
+				/**
+				* @param {string} body
+				* @returns {string}
+				*/
+				renderBody(body) {
+					if (body === null || body === "") return "(empty)";
+					return body;
+				},
+
+				/**
+				* @param {number} timestamp
+				* @returns {Date}
+				*/
+				timestampToDate(timestamp) {
+					return new Date(timestamp * 1000);
+				},
+
+				/**
+				* @returns {BasicAuth?}
+				*/
+				ensureCredential() {
+					if (this.credential.username === "" || this.credential.password === "") return null;
+					return this.credential;
+				},
+
+				/**
+				* @returns {Promise<void>}
+				*/
+				async checkAuth() {
+					if (this.authorized) return;
+
+					const url = new URL("/api/bins", window.location.origin);
+					url.searchParams.append("limit", "1");
+
+					const resp = await this.fetch(url, {}, true, false);
+					if (resp.status === 401) return;
+
+					this.authorized = true;
+				},
+
+				/**
+				* @returns {Promise<void>}
+				*/
+				async tryAuth() {
+					await this.checkAuth();
+
+					if (!this.authorized) {
+						this.notify("Invalid credential.", "danger");
+					}
+				},
+
+				/**
+				* @param {boolean} copy
+				* @returns {void}
+				*/
+				initUpdatingBin(copy) {
+					/** @type {Template} */
+					const defaultTemplate = {
+						status: 200,
+						headers: {},
+						body: "",
+					};
+
+					if (copy && this.activeBin !== null) {
+						const bin = this.activeBin;
+						const template = bin.responding.template;
+
+						this.updatingBin = {
+							id: bin.id,
+							name: bin.name,
+							body: bin.body,
+							query: bin.query,
+							headers: bin.headers,
+							subpath: bin.subpath,
+							allowAnyIP: bin.ips === null,
+							ips: bin.ips !== null ? [...bin.ips] : [],
+							allowAnyMethod: bin.methods === null,
+							methods: bin.methods !== null ? [...bin.methods] : [],
+							newIP: "",
+							responseType: /** @type {"capture" | "template"} */ (Object.entries(bin.responding)[0][0]),
+							newResponseHeader: "",
+							template: template !== undefined ? JSON.parse(JSON.stringify(template)) : defaultTemplate,
+						}
+					} else {
+						this.updatingBin = {
+							id: null,
+							name: "",
+							body: true,
+							query: true,
+							headers: true,
+							subpath: "reject",
+							allowAnyIP: true,
+							ips: [],
+							allowAnyMethod: true,
+							methods: [],
+							newIP: "",
+							responseType: "capture",
+							newResponseHeader: "",
+							template: defaultTemplate,
+						};
+					}
+				},
+
+				/**
+				* @returns {void}
+				*/
+				pushNewIP() {
+					const bin = /** @type {UpdatingBin} */(this.updatingBin);
+
+					// modified from https://github.com/silverwind/cidr-regex/blob/master/index.ts (licensed under the BSD 2-Clause "Simplified" License)
+					const pattern = /^(?:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}(?:\/(3[0-2]|[12]?[0-9]))?)|(?:(?:(?:[a-fA-F\d]{1,4}:){7}(?:[a-fA-F\d]{1,4}|:)|(?:[a-fA-F\d]{1,4}:){6}(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}|:[a-fA-F\d]{1,4}|:)|(?:[a-fA-F\d]{1,4}:){5}(?::(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}|(?::[a-fA-F\d]{1,4}){1,2}|:)|(?:[a-fA-F\d]{1,4}:){4}(?:(?::[a-fA-F\d]{1,4})?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}|(?::[a-fA-F\d]{1,4}){1,3}|:)|(?:[a-fA-F\d]{1,4}:){3}(?:(?::[a-fA-F\d]{1,4}){0,2}:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}|(?::[a-fA-F\d]{1,4}){1,4}|:)|(?:[a-fA-F\d]{1,4}:){2}(?:(?::[a-fA-F\d]{1,4}){0,3}:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}|(?::[a-fA-F\d]{1,4}){1,5}|:)|[a-fA-F\d]{1,4}:(?:(?::[a-fA-F\d]{1,4}){0,4}:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}|(?::[a-fA-F\d]{1,4}){1,6}|:)|:(?:(?::[a-fA-F\d]{1,4}){0,5}:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}|(?::[a-fA-F\d]{1,4}){1,7}|:))(?:%[0-9a-zA-Z]+)?(?:\/(12[0-8]|1[01][0-9]|[1-9]?[0-9]))?))$/;
+					if (pattern.test(bin.newIP)) {
+						bin.ips.push(bin.newIP);
+						bin.newIP = "";
+					} else {
+						this.notify("Invalid IP format.", "danger");
+					}
+				},
+
+				/**
+				* @returns {void}
+				*/
+				pushNewResponseHeader() {
+					if (this.updatingBin === null) return;
+
+					const pattern = /^(?<name>[\w\-]+): ?(?<value>.+)$/;
+					const result = pattern.exec(this.updatingBin.newResponseHeader);
+
+					if (result === null || result.groups === undefined) {
+						this.notify("Invalid header.", "danger");
+						return;
+					}
+
+					this.updatingBin.template.headers[result.groups["name"]] = result.groups["value"] ?? "";
+					this.updatingBin.newResponseHeader = "";
+				},
+
+				/**
+				* @returns {Promise<void>}
+				*/
+				async updateBin() {
+					const updatingBin = /** @type {UpdatingBin} */(this.updatingBin);
+
+					if (updatingBin.name === "") {
+						this.notify("Bin name cannot be empty.", "danger");
+						return;
+					}
+
+					/** @type {Responding} */
+					const responding = (() => {
+						switch (updatingBin.responseType) {
+							case "capture":
+								return { capture: {} };
+							case "template":
+								return { template: updatingBin.template }
+						}
+					})();
+
+				/** @type {Bin} **/
+				const bin = {
+					id: updatingBin.id,
+					name: updatingBin.name,
+					body: updatingBin.body,
+					query: updatingBin.query,
+					headers: updatingBin.headers,
+					subpath: updatingBin.subpath,
+					ips: updatingBin.allowAnyIP ? null : updatingBin.ips,
+					methods: updatingBin.allowAnyMethod ? null : updatingBin.methods,
+					responding,
+				};
+
+				await this.fetch("/api/bins", {
+					method: "PUT",
+					body: JSON.stringify(bin),
+				});
+
+			this.notify("Create/Update bin successfully.", "success");
+
+			await this.loadBin(bin.name);
+			await this.fetchBins();
+		},
+
+		/**
+		* @param {string} message
+		* @param {string} [level]
+		* @param {number} [timeout]
+		* @param {boolean} [escape]
+		* @returns {void}
+		*/
+		notify(message, level = "info", timeout = 3000, escape = true) {
+			if (escape) {
+				message = new Option(message).innerHTML;
+			}
+
+			const notification = {
+				level: level,
+				message: message,
+			};
+			this.notifications.push(notification);
+
+			if (timeout > 0) {
+				setTimeout(() => this.unnotify(notification), timeout);
+			}
+		},
+
+		/**
+		* @param {Notify} notification
+		* @returns {void}
+		*/
+		unnotify(notification) {
+			const index = this.notifications.indexOf(notification);
+			if (index !== -1) this.notifications.splice(index, 1);
+		},
+
+		/**
+		* @returns {void}
+		*/
+		copyEndpoint() {
+			const bin = /** @type {Bin} */(this.activeBin);
+
+			const endpoint = new URL(`/access/${bin.name}`, window.location.origin);
+			const endpointText = endpoint.toString();
+
+			try {
+				navigator.clipboard.writeText(endpointText);
+				this.notify("Endpoint has been copied to clipboard successfully.", "success");
+			} catch {
+				this.notify(`Failed to copy endpoint to clipboard. Please copy it manually: <code>${endpointText}</code>`, "warning", 0, false);
+			}
+		},
+
+		/**
+		* @returns {Promise<void>}
+		*/
+		async deleteCapture() {
+			const bin = /** @type {Bin} */(this.activeBin);
+			const capture = /** @type {Capture} */(this.activeCapture);
+
+			await this.fetch(`/api/bins/${encodeURI(bin.name)}/captures/${capture.id}`, { method: "DELETE" });
+
+			this.notify(`Capture has been deleted successfully.`, "success");
+
+			this.activeCapture = null;
+			await this.loadCapturePage();
+		}
+	});
+		</script>
+	</body>
 </html>
