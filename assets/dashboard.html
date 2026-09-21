@@ -249,6 +249,16 @@
 													<textarea class="form-control" x-model="updatingBin.template.body"></textarea>
 												</div>
 											</div>
+
+											<!-- Proxy Response Settings -->
+											<div class="mt-3" x-show="updatingBin.responseType === 'proxy'">
+												<!-- General Settings -->
+												<label class="form-label">Proxy Settings</label>
+												<div class="input-group mb-3">
+													<span class="input-group-text">Target</span>
+													<input type="text" class="form-control" placeholder="https://example.com" x-model="updatingBin.proxy.target">
+												</div>
+											</div>
 										</div>
 									</div>
 								</template>
@@ -335,6 +345,7 @@
 										<span class="fs-3 fw-medium">Responding</span>
 										<span class="ms-3 badge text-bg-info" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Respond captured info in JSON" x-show="activeBin.responding.capture">Capture</span>
 										<span class="ms-3 badge text-bg-info" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Render response from template" x-show="activeBin.responding.template">Template</span>
+										<span class="ms-3 badge text-bg-info" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Render response from template" x-show="activeBin.responding.proxy">Proxy</span>
 									</div>
 
 									<!-- Template Response -->
@@ -387,6 +398,23 @@
 													<pre class="mb-0" x-html="hljs.highlightAuto(renderBody(activeBin.responding.template.body)).value"></pre>
 												</div>
 											</div>
+										</div>
+									</template>
+
+									<template x-if="activeBin.responding.proxy">
+										<div>
+											<!-- General -->
+											<h5 class="mb-3">General</h5>
+											<ul class="list-group mb-3" style="font-size: .9rem">
+												<li class="list-group-item lh-sm">
+													<div class="row">
+														<div class="col-md-4 fw-medium">Target</div>
+														<div class="col-md-8">
+															<code x-text="activeBin.responding.proxy.target"></code>
+														</div>
+													</div>
+												</li>
+											</ul>
 										</div>
 									</template>
 								</div>
@@ -557,9 +585,15 @@
 			*/
 
 			/**
+			* @typedef {Object} Proxy
+			* @property {string} target
+			*/
+
+			/**
 			* @typedef {Object} Responding
 			* @property {{} | undefined} [capture]
 			* @property {Template | undefined} [template]
+			* @property {Proxy | undefined} [proxy]
 			*/
 
 			/**
@@ -591,6 +625,7 @@
 			* @property {"capture" | "template"} responseType
 			* @property {string} newResponseHeader
 			* @property {Template} template
+			* @property {Proxy} proxy
 			*/
 
 			/**
@@ -631,7 +666,7 @@
 			const validMethods = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "CONNECT"];
 			/** @type {string[]} */
 			/** @constant */
-			const validResponseTypes = ["capture", "template"];
+			const validResponseTypes = ["capture", "template", "proxy"];
 			/** @type {string[]} */
 			/** @constant */
 			const validSubpathRules = ["reject", "ignore", "accept"];
@@ -912,9 +947,15 @@
 						body: "",
 					};
 
+					/** @type {Proxy} */
+					const defaultProxy = {
+						target: "",
+					};
+
 					if (copy && this.activeBin !== null) {
 						const bin = this.activeBin;
 						const template = bin.responding.template;
+						const proxy = bin.responding.proxy;
 
 						this.updatingBin = {
 							id: bin.id,
@@ -931,6 +972,7 @@
 							responseType: /** @type {"capture" | "template"} */ (Object.entries(bin.responding)[0][0]),
 							newResponseHeader: "",
 							template: template !== undefined ? JSON.parse(JSON.stringify(template)) : defaultTemplate,
+							proxy: proxy !== undefined ? JSON.parse(JSON.stringify(proxy)) : defaultProxy,
 						}
 					} else {
 						this.updatingBin = {
@@ -948,6 +990,7 @@
 							responseType: "capture",
 							newResponseHeader: "",
 							template: defaultTemplate,
+							proxy: defaultProxy,
 						};
 					}
 				},
@@ -1004,6 +1047,8 @@
 								return { capture: {} };
 							case "template":
 								return { template: updatingBin.template }
+							case "proxy":
+								return { proxy: updatingBin.proxy }
 						}
 					})();
 
