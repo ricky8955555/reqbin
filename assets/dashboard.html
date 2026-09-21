@@ -6,13 +6,16 @@
     <title>Reqbin Dashboard</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css"
-      rel="stylesheet" />
+      rel="stylesheet"
+    />
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1/font/bootstrap-icons.min.css"
-      rel="stylesheet" />
+      rel="stylesheet"
+    />
     <link
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/default.min.css"
-      rel="stylesheet" />
+      rel="stylesheet"
+    />
   </head>
 
   <body>
@@ -25,7 +28,8 @@
       <!-- Notifications -->
       <div
         class="position-fixed w-50 start-50 translate-middle-x mt-2"
-        style="z-index: 1100">
+        style="z-index: 1100"
+      >
         <template x-for="notification in notifications">
           <div
             class="alert alert-dismissible my-2"
@@ -34,12 +38,14 @@
             x-data="{ show: false }"
             x-init="$nextTick(() => show = true)"
             x-show="show"
-            x-transition>
+            x-transition
+          >
             <span x-html="notification.message"></span>
             <button
               type="button"
               class="btn-close"
-              @click="unnotify(notification)"></button>
+              @click="unnotify(notification)"
+            ></button>
           </div>
         </template>
       </div>
@@ -57,14 +63,16 @@
               <input
                 type="text"
                 class="form-control"
-                x-model="credential.username" />
+                x-model="credential.username"
+              />
             </div>
             <div class="mb-3">
               <label class="form-label">Password</label>
               <input
                 type="password"
                 class="form-control"
-                x-model="credential.password" />
+                x-model="credential.password"
+              />
             </div>
             <button type="submit" class="btn btn-primary">Authorize</button>
           </form>
@@ -78,13 +86,15 @@
           <div
             class="offcanvas offcanvas-start"
             id="binSelector"
-            x-init="fetchBins()">
+            x-init="fetchBins()"
+          >
             <div class="offcanvas-header">
               <h5 class="offcanvas-title">Bins</h5>
               <button
                 type="button"
                 class="btn-close"
-                data-bs-dismiss="offcanvas"></button>
+                data-bs-dismiss="offcanvas"
+              ></button>
             </div>
             <div class="offcanvas-body">
               <ul class="list-group">
@@ -92,7 +102,8 @@
                   <li
                     @click="activeBin = bin"
                     class="list-group-item list-group-item-action"
-                    :class="{ 'active': activeBin && activeBin.id === bin.id }">
+                    :class="{ 'active': activeBin && activeBin.id === bin.id }"
+                  >
                     <span x-text="bin.name"></span>
                     <span
                       ><small>(ID: <span x-text="bin.id"></span>)</small></span
@@ -103,7 +114,8 @@
                   class="list-group-item list-group-item-action"
                   data-bs-toggle="modal"
                   data-bs-target="#updateBinDialog"
-                  @click="initUpdatingBin(false)">
+                  @click="initUpdatingBin(false)"
+                >
                   + Create a bin ...
                 </li>
               </ul>
@@ -119,7 +131,8 @@
                   <button
                     type="button"
                     class="btn-close"
-                    data-bs-dismiss="modal"></button>
+                    data-bs-dismiss="modal"
+                  ></button>
                 </div>
                 <div class="modal-body">
                   <p>
@@ -134,14 +147,16 @@
                   <button
                     type="button"
                     class="btn btn-outline-secondary"
-                    data-bs-dismiss="modal">
+                    data-bs-dismiss="modal"
+                  >
                     Close
                   </button>
                   <button
                     type="button"
                     class="btn btn-danger"
                     @click="deleteBin()"
-                    data-bs-dismiss="modal">
+                    data-bs-dismiss="modal"
+                  >
                     Delete
                   </button>
                 </div>
@@ -158,7 +173,8 @@
                   <button
                     type="button"
                     class="btn-close"
-                    data-bs-dismiss="modal"></button>
+                    data-bs-dismiss="modal"
+                  ></button>
                 </div>
                 <div class="modal-body">
                   <p>Do you really want to <b>delete the capture</b>?</p>
@@ -170,14 +186,16 @@
                   <button
                     type="button"
                     class="btn btn-outline-secondary"
-                    data-bs-dismiss="modal">
+                    data-bs-dismiss="modal"
+                  >
                     Close
                   </button>
                   <button
                     type="button"
                     class="btn btn-danger"
                     @click="deleteCapture()"
-                    data-bs-dismiss="modal">
+                    data-bs-dismiss="modal"
+                  >
                     Delete
                   </button>
                 </div>
@@ -194,7 +212,8 @@
                   <button
                     type="button"
                     class="btn-close"
-                    data-bs-dismiss="modal"></button>
+                    data-bs-dismiss="modal"
+                  ></button>
                 </div>
                 <div class="modal-body">
                   <p>
@@ -208,14 +227,16 @@
                   <button
                     type="button"
                     class="btn btn-outline-secondary"
-                    data-bs-dismiss="modal">
+                    data-bs-dismiss="modal"
+                  >
                     Close
                   </button>
                   <button
                     type="button"
                     class="btn btn-danger"
                     @click="clearBin()"
-                    data-bs-dismiss="modal">
+                    data-bs-dismiss="modal"
+                  >
                     Clear
                   </button>
                 </div>
@@ -228,7 +249,8 @@
             class="modal fade"
             id="updateBinDialog"
             data-bs-backdrop="static"
-            tabindex="-1">
+            tabindex="-1"
+          >
             <div class="modal-dialog modal-lg">
               <div class="modal-content">
                 <div class="modal-header">
@@ -236,7 +258,8 @@
                   <button
                     type="button"
                     class="btn-close"
-                    data-bs-dismiss="modal"></button>
+                    data-bs-dismiss="modal"
+                  ></button>
                 </div>
                 <template x-if="updatingBin">
                   <div class="modal-body">
@@ -247,7 +270,8 @@
                         type="text"
                         class="form-control"
                         placeholder="Foobar"
-                        x-model="updatingBin.name" />
+                        x-model="updatingBin.name"
+                      />
                     </div>
 
                     <!-- Capture Options -->
@@ -256,21 +280,24 @@
                         <input
                           class="form-check-input"
                           type="checkbox"
-                          x-model="updatingBin.body" />
+                          x-model="updatingBin.body"
+                        />
                         <label class="form-check-label">Capture body</label>
                       </div>
                       <div class="form-check">
                         <input
                           class="form-check-input"
                           type="checkbox"
-                          x-model="updatingBin.query" />
+                          x-model="updatingBin.query"
+                        />
                         <label class="form-check-label">Capture query</label>
                       </div>
                       <div class="form-check">
                         <input
                           class="form-check-input"
                           type="checkbox"
-                          x-model="updatingBin.headers" />
+                          x-model="updatingBin.headers"
+                        />
                         <label class="form-check-label">Capture headers</label>
                       </div>
                     </div>
@@ -283,7 +310,8 @@
                           <option
                             :value="subpathRule"
                             x-text="subpathRule"
-                            :selected="updatingBin.subpath == subpathRule"></option>
+                            :selected="updatingBin.subpath == subpathRule"
+                          ></option>
                         </template>
                       </select>
                     </div>
@@ -295,7 +323,8 @@
                           class="form-check-input"
                           type="checkbox"
                           switch
-                          x-model="updatingBin.allowAnyIP" />
+                          x-model="updatingBin.allowAnyIP"
+                        />
                         <label class="form-check-label">Allow any source</label>
                       </div>
                       <div class="my-3" x-show="!updatingBin.allowAnyIP">
@@ -306,7 +335,8 @@
                               type="text"
                               class="form-control rounded-0 border-bottom-0"
                               :value="ip"
-                              readonly />
+                              readonly
+                            />
                             <a
                               href="#"
                               class="input-group-text link-danger fs-5 lh-1 rounded-0 border-bottom-0"
@@ -320,7 +350,8 @@
                             type="text"
                             class="form-control rounded-top-0"
                             placeholder="Type allowed IP here..."
-                            x-model="updatingBin.newIP" />
+                            x-model="updatingBin.newIP"
+                          />
                           <a
                             href="#"
                             class="input-group-text link-success fs-5 lh-1 rounded-top-0"
@@ -338,7 +369,8 @@
                           class="form-check-input"
                           type="checkbox"
                           switch
-                          x-model="updatingBin.allowAnyMethod" />
+                          x-model="updatingBin.allowAnyMethod"
+                        />
                         <label class="form-check-label">Allow any method</label>
                       </div>
                       <div class="my-3" x-show="!updatingBin.allowAnyMethod">
@@ -351,10 +383,12 @@
                               class="form-check-input"
                               type="checkbox"
                               :value="method"
-                              x-model="updatingBin.methods" />
+                              x-model="updatingBin.methods"
+                            />
                             <label
                               class="form-check-label"
-                              x-text="method"></label>
+                              x-text="method"
+                            ></label>
                           </div>
                         </template>
                       </div>
@@ -365,19 +399,22 @@
                       <label class="form-label">Responding</label>
                       <select
                         class="form-select"
-                        x-model="updatingBin.responseType">
+                        x-model="updatingBin.responseType"
+                      >
                         <template x-for="responseType in validResponseTypes">
                           <option
                             :value="responseType"
                             x-text="responseType"
-                            :selected="updatingBin.responseType === responseType"></option>
+                            :selected="updatingBin.responseType === responseType"
+                          ></option>
                         </template>
                       </select>
 
                       <!-- Template Response Settings -->
                       <div
                         class="mt-3"
-                        x-show="updatingBin.responseType === 'template'">
+                        x-show="updatingBin.responseType === 'template'"
+                      >
                         <!-- General Settings -->
                         <label class="form-label">Response Settings</label>
                         <div class="input-group mb-3">
@@ -385,20 +422,23 @@
                           <input
                             type="number"
                             class="form-control"
-                            x-model="updatingBin.template.status" />
+                            x-model="updatingBin.template.status"
+                          />
                         </div>
 
                         <!-- Headers -->
                         <div class="mb-3">
                           <label class="form-label">Response Headers</label>
                           <template
-                            x-for="[name, value] of Object.entries(updatingBin.template.headers)">
+                            x-for="[name, value] of Object.entries(updatingBin.template.headers)"
+                          >
                             <div class="input-group">
                               <input
                                 type="text"
                                 class="form-control rounded-0 border-bottom-0"
                                 :value="`${name}: ${value}`"
-                                readonly />
+                                readonly
+                              />
                               <a
                                 href="#"
                                 class="input-group-text link-danger fs-5 lh-1 rounded-0 border-bottom-0"
@@ -412,7 +452,8 @@
                               type="text"
                               class="form-control rounded-top-0"
                               placeholder="Type response header here..."
-                              x-model="updatingBin.newResponseHeader" />
+                              x-model="updatingBin.newResponseHeader"
+                            />
                             <a
                               href="#"
                               class="input-group-text link-success fs-5 lh-1 rounded-top-0"
@@ -427,14 +468,16 @@
                           <label class="form-label">Body Template</label>
                           <textarea
                             class="form-control"
-                            x-model="updatingBin.template.body"></textarea>
+                            x-model="updatingBin.template.body"
+                          ></textarea>
                         </div>
                       </div>
 
                       <!-- Proxy Response Settings -->
                       <div
                         class="mt-3"
-                        x-show="updatingBin.responseType === 'proxy'">
+                        x-show="updatingBin.responseType === 'proxy'"
+                      >
                         <!-- General Settings -->
                         <label class="form-label">Proxy Settings</label>
                         <div class="input-group mb-3">
@@ -443,7 +486,8 @@
                             type="text"
                             class="form-control"
                             placeholder="https://example.com"
-                            x-model="updatingBin.proxy.target" />
+                            x-model="updatingBin.proxy.target"
+                          />
                         </div>
                       </div>
                     </div>
@@ -453,13 +497,15 @@
                   <button
                     type="button"
                     class="btn btn-outline-secondary"
-                    data-bs-dismiss="modal">
+                    data-bs-dismiss="modal"
+                  >
                     Close
                   </button>
                   <button
                     type="button"
                     class="btn btn-primary"
-                    @click="updateBin()">
+                    @click="updateBin()"
+                  >
                     Submit
                   </button>
                 </div>
@@ -475,9 +521,11 @@
                   class="navbar-brand"
                   href="#"
                   data-bs-toggle="offcanvas"
-                  data-bs-target="#binSelector">
+                  data-bs-target="#binSelector"
+                >
                   <span
-                    x-text="activeBin ? activeBin.name : 'Click here to select bin'"></span>
+                    x-text="activeBin ? activeBin.name : 'Click here to select bin'"
+                  ></span>
                   <template x-if="activeBin"
                     ><span
                       ><small
@@ -499,18 +547,21 @@
               <div>
                 <!-- Actions -->
                 <div
-                  class="d-flex justify-content-md-end mb-5 mb-md-0 row g-1 row-cols-auto">
+                  class="d-flex justify-content-md-end mb-5 mb-md-0 row g-1 row-cols-auto"
+                >
                   <div class="col">
                     <button
                       class="btn btn-outline-info"
-                      @click="copyEndpoint()">
+                      @click="copyEndpoint()"
+                    >
                       Copy Endpoint
                     </button>
                   </div>
                   <div class="col">
                     <button
                       class="btn btn-outline-secondary"
-                      @click="loadBin()">
+                      @click="loadBin()"
+                    >
                       Reload
                     </button>
                   </div>
@@ -519,7 +570,8 @@
                       class="btn btn-outline-primary"
                       data-bs-toggle="modal"
                       data-bs-target="#updateBinDialog"
-                      @click="initUpdatingBin(true)">
+                      @click="initUpdatingBin(true)"
+                    >
                       Update
                     </button>
                   </div>
@@ -527,7 +579,8 @@
                     <button
                       class="btn btn-outline-warning"
                       data-bs-toggle="modal"
-                      data-bs-target="#clearBinDialog">
+                      data-bs-target="#clearBinDialog"
+                    >
                       Clear
                     </button>
                   </div>
@@ -536,7 +589,8 @@
                       type="button"
                       class="btn btn-outline-danger"
                       data-bs-toggle="modal"
-                      data-bs-target="#deleteBinDialog">
+                      data-bs-target="#deleteBinDialog"
+                    >
                       Delete
                     </button>
                   </div>
@@ -592,7 +646,8 @@
                         x-text="method"
                         data-bs-toggle="tooltip"
                         data-bs-placement="top"
-                        data-bs-title="Allowed Method"></span>
+                        data-bs-title="Allowed Method"
+                      ></span>
                     </span>
                   </template>
                 </div>
@@ -670,7 +725,8 @@
                               <div class="col-md-4 fw-medium">Status</div>
                               <div class="col-md-8">
                                 <code
-                                  x-text="activeBin.responding.template.status"></code>
+                                  x-text="activeBin.responding.template.status"
+                                ></code>
                               </div>
                             </div>
                           </li>
@@ -682,7 +738,8 @@
                           class="list-group mb-3"
                           style="font-size: 0.9rem"
                           x-data="{ headers: null }"
-                          x-effect="headers = Object.entries(activeBin.responding.template.headers)">
+                          x-effect="headers = Object.entries(activeBin.responding.template.headers)"
+                        >
                           <template x-if="headers.length === 0">
                             <li class="list-group-item">No headers</li>
                           </template>
@@ -692,7 +749,8 @@
                                 <div class="row">
                                   <div
                                     class="col-md-4 fw-medium"
-                                    x-text="name"></div>
+                                    x-text="name"
+                                  ></div>
                                   <div class="col-md-8">
                                     <code x-text="value"></code>
                                   </div>
@@ -710,7 +768,8 @@
                         <div class="border px-3 py-2 mb-3 rounded">
                           <pre
                             class="mb-0"
-                            x-html="hljs.highlightAuto(renderBody(activeBin.responding.template.body)).value"></pre>
+                            x-html="hljs.highlightAuto(renderBody(activeBin.responding.template.body)).value"
+                          ></pre>
                         </div>
                       </div>
                     </div>
@@ -726,7 +785,8 @@
                             <div class="col-md-4 fw-medium">Target</div>
                             <div class="col-md-8">
                               <code
-                                x-text="activeBin.responding.proxy.target"></code>
+                                x-text="activeBin.responding.proxy.target"
+                              ></code>
                             </div>
                           </div>
                         </li>
@@ -738,7 +798,8 @@
                 <!-- Captures -->
                 <div class="mt-5">
                   <div
-                    class="d-md-flex justify-content-md-between align-items-center mb-2">
+                    class="d-md-flex justify-content-md-between align-items-center mb-2"
+                  >
                     <div class="fs-3 fw-medium mb-2 mb-md-0">Captures</div>
 
                     <div class="row row-cols-md-auto g-2 align-items-center">
@@ -749,7 +810,8 @@
                             class="form-check-input"
                             type="checkbox"
                             switch
-                            x-model="captureConfig.desc" />
+                            x-model="captureConfig.desc"
+                          />
                           <label class="form-check-label"> Descending </label>
                         </div>
                       </div>
@@ -758,7 +820,8 @@
                       <div class="col-12">
                         <select
                           class="form-select form-select-inline"
-                          x-model="captureConfig.limit">
+                          x-model="captureConfig.limit"
+                        >
                           <template x-for="limit in [10, 20, 50, 100]">
                             <option :value="limit">
                               <span x-text="limit"></span> / Page
@@ -773,7 +836,8 @@
                   <div class="accordion mt-2" x-id="['capture-detail']">
                     <template
                       x-for="capture in captures.data"
-                      :key="capture.id">
+                      :key="capture.id"
+                    >
                       <div class="accordion-item">
                         <!-- Header (Summary) -->
                         <div class="accordion-header">
@@ -781,17 +845,21 @@
                             class="accordion-button py-2 collapsed"
                             type="button"
                             data-bs-toggle="collapse"
-                            :data-bs-target="`#${$id('capture-detail', capture.id)}`">
+                            :data-bs-target="`#${$id('capture-detail', capture.id)}`"
+                          >
                             <div class="row w-100">
                               <div
                                 class="col-md-4"
-                                x-text="timestampToDate(capture.time).toLocaleString()"></div>
+                                x-text="timestampToDate(capture.time).toLocaleString()"
+                              ></div>
                               <div
                                 class="col-md-2"
-                                x-text="capture.method"></div>
+                                x-text="capture.method"
+                              ></div>
                               <div
                                 class="col-md-6"
-                                x-text="capture.remote_addr"></div>
+                                x-text="capture.remote_addr"
+                              ></div>
                             </div>
                           </button>
                         </div>
@@ -799,7 +867,8 @@
                         <!-- Collapsed Body (Detail)-->
                         <div
                           class="accordion-collapse collapse"
-                          :id="$id('capture-detail', capture.id)">
+                          :id="$id('capture-detail', capture.id)"
+                        >
                           <div class="accordion-body pt-3 pb-1">
                             <div class="row">
                               <!-- Left Grid (Subpath & Headers & Query) -->
@@ -809,7 +878,8 @@
                                 <div class="border px-3 py-2 mb-3 rounded">
                                   <pre
                                     class="mb-0"
-                                    x-text="capture.subpath ? capture.subpath : 'No subpath'"></pre>
+                                    x-text="capture.subpath ? capture.subpath : 'No subpath'"
+                                  ></pre>
                                 </div>
 
                                 <!-- Headers -->
@@ -818,7 +888,8 @@
                                   class="list-group mb-3"
                                   style="font-size: 0.9rem"
                                   x-data="{ headers: null }"
-                                  x-effect="headers = capture.headers ? Object.entries(capture.headers) : []">
+                                  x-effect="headers = capture.headers ? Object.entries(capture.headers) : []"
+                                >
                                   <template x-if="headers.length === 0">
                                     <li class="list-group-item">No headers</li>
                                   </template>
@@ -828,7 +899,8 @@
                                         <div class="row">
                                           <div
                                             class="col-md-4 fw-medium"
-                                            x-text="name"></div>
+                                            x-text="name"
+                                          ></div>
                                           <div class="col-md-8">
                                             <code x-text="value"></code>
                                           </div>
@@ -844,7 +916,8 @@
                                   class="list-group mb-3"
                                   style="font-size: 0.9rem"
                                   x-data="{ query: null }"
-                                  x-effect="query = capture.query ? Object.entries(capture.query) : []">
+                                  x-effect="query = capture.query ? Object.entries(capture.query) : []"
+                                >
                                   <template x-if="query.length === 0">
                                     <li class="list-group-item">
                                       No query parameters
@@ -874,7 +947,8 @@
                                 <div class="border px-3 py-2 mb-3 rounded">
                                   <pre
                                     class="mb-0"
-                                    x-html="hljs.highlightAuto(renderBody(capture.body)).value"></pre>
+                                    x-html="hljs.highlightAuto(renderBody(capture.body)).value"
+                                  ></pre>
                                 </div>
                               </div>
                             </div>
@@ -886,7 +960,8 @@
                                 class="btn btn-outline-danger"
                                 data-bs-toggle="modal"
                                 data-bs-target="#deleteCaptureDialog"
-                                @click="activeCapture = capture">
+                                @click="activeCapture = capture"
+                              >
                                 Delete
                               </button>
                             </div>
@@ -916,28 +991,33 @@
                           class="page-link"
                           href="#"
                           x-text="capturePage"
-                          @click="capturePage--"></a>
+                          @click="capturePage--"
+                        ></a>
                       </li>
                       <!-- Current Page -->
                       <li class="page-item">
                         <a
                           class="page-link active"
                           href="#"
-                          x-text="capturePage + 1"></a>
+                          x-text="capturePage + 1"
+                        ></a>
                       </li>
                       <!-- Next Page -->
                       <li
                         class="page-item"
-                        x-show="capturePage < captures.pages - 1">
+                        x-show="capturePage < captures.pages - 1"
+                      >
                         <a
                           class="page-link"
                           href="#"
                           x-text="capturePage + 2"
-                          @click="capturePage++"></a>
+                          @click="capturePage++"
+                        ></a>
                       </li>
                       <li
                         class="page-item"
-                        x-show="capturePage < captures.pages - 2">
+                        x-show="capturePage < captures.pages - 2"
+                      >
                         <a class="page-link" href="#" @click="capturePage += 2"
                           >...</a
                         >
@@ -963,7 +1043,8 @@
 
     <script
       src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"
-      defer></script>
+      defer
+    ></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js"></script>
 
