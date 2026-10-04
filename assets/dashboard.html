@@ -105,9 +105,9 @@
                     :class="{ 'active': activeBin && activeBin.id === bin.id }"
                   >
                     <span x-text="bin.name"></span>
-                    <span
-                      ><small>(ID: <span x-text="bin.id"></span>)</small></span
-                    >
+                    <span>
+                      <small>(ID: <span x-text="bin.id"></span>)</small>
+                    </span>
                   </li>
                 </template>
                 <li
@@ -341,8 +341,9 @@
                               href="#"
                               class="input-group-text link-danger fs-5 lh-1 rounded-0 border-bottom-0"
                               @click="updatingBin.ips.splice(i, 1)"
-                              ><i class="bi bi-x"></i
-                            ></a>
+                            >
+                              <i class="bi bi-x"></i>
+                            </a>
                           </div>
                         </template>
                         <div class="input-group">
@@ -356,8 +357,9 @@
                             href="#"
                             class="input-group-text link-success fs-5 lh-1 rounded-top-0"
                             @click="pushNewIP()"
-                            ><i class="bi bi-plus"></i
-                          ></a>
+                          >
+                            <i class="bi bi-plus"></i>
+                          </a>
                         </div>
                       </div>
                     </div>
@@ -374,9 +376,9 @@
                         <label class="form-check-label">Allow any method</label>
                       </div>
                       <div class="my-3" x-show="!updatingBin.allowAnyMethod">
-                        <label class="form-label d-block"
-                          >Allowed Methods</label
-                        >
+                        <label class="form-label d-block">
+                          Allowed Methods
+                        </label>
                         <template x-for="method in validMethods">
                           <div class="form-check form-check-inline">
                             <input
@@ -443,8 +445,9 @@
                                 href="#"
                                 class="input-group-text link-danger fs-5 lh-1 rounded-0 border-bottom-0"
                                 @click="delete updatingBin.template.headers[name]"
-                                ><i class="bi bi-x"></i
-                              ></a>
+                              >
+                                <i class="bi bi-x"></i>
+                              </a>
                             </div>
                           </template>
                           <div class="input-group">
@@ -458,8 +461,9 @@
                               href="#"
                               class="input-group-text link-success fs-5 lh-1 rounded-top-0"
                               @click="pushNewResponseHeader()"
-                              ><i class="bi bi-plus"></i
-                            ></a>
+                            >
+                              <i class="bi bi-plus"></i>
+                            </a>
                           </div>
                         </div>
 
@@ -526,13 +530,11 @@
                   <span
                     x-text="activeBin ? activeBin.name : 'Click here to select bin'"
                   ></span>
-                  <template x-if="activeBin"
-                    ><span
-                      ><small
-                        >(ID: <span x-text="activeBin.id"></span>)</small
-                      ></span
-                    ></template
-                  >
+                  <template x-if="activeBin">
+                    <span>
+                      <small>(ID: <span x-text="activeBin.id"></span>)</small>
+                    </span>
+                  </template>
                 </a>
               </div>
             </nav>
@@ -605,40 +607,45 @@
                     data-bs-toggle="tooltip"
                     data-bs-placement="top"
                     data-bs-title="Capture Body"
-                    >Body</span
                   >
+                    Body
+                  </span>
                   <span
                     class="badge text-bg-primary"
                     x-show="activeBin.query"
                     data-bs-toggle="tooltip"
                     data-bs-placement="top"
                     data-bs-title="Capture Query"
-                    >Query</span
                   >
+                    Query
+                  </span>
                   <span
                     class="badge text-bg-primary"
                     x-show="activeBin.headers"
                     data-bs-toggle="tooltip"
                     data-bs-placement="top"
                     data-bs-title="Capture Headers"
-                    >Headers</span
                   >
+                    Headers
+                  </span>
                   <span
                     class="badge text-bg-info"
                     x-show="activeBin.subpath === 'ignore'"
                     data-bs-toggle="tooltip"
                     data-bs-placement="top"
                     data-bs-title="Ignore Subpath"
-                    >*Subpath</span
                   >
+                    *Subpath
+                  </span>
                   <span
                     class="badge text-bg-success"
                     x-show="activeBin.subpath === 'accept'"
                     data-bs-toggle="tooltip"
                     data-bs-placement="top"
                     data-bs-title="Capture Subpath"
-                    >Subpath</span
                   >
+                    Subpath
+                  </span>
                   <template x-for="method in (activeBin.methods ?? ['ANY'])">
                     <span>
                       <span
@@ -662,16 +669,18 @@
                       data-bs-placement="top"
                       data-bs-title="Capture accesses from IPs specified below only"
                       x-show="activeBin.ips"
-                      >Activated</span
                     >
+                      Activated
+                    </span>
                     <span
                       class="ms-3 badge text-bg-warning"
                       data-bs-toggle="tooltip"
                       data-bs-placement="top"
                       data-bs-title="Capture all accesses from any source"
                       x-show="!activeBin.ips"
-                      >Unset</span
                     >
+                      Unset
+                    </span>
                   </div>
                   <template x-if="activeBin.ips">
                     <ul class="list-group list-group">
@@ -692,24 +701,27 @@
                       data-bs-placement="top"
                       data-bs-title="Respond captured info in JSON"
                       x-show="activeBin.responding.capture"
-                      >Capture</span
                     >
+                      Capture
+                    </span>
                     <span
                       class="ms-3 badge text-bg-info"
                       data-bs-toggle="tooltip"
                       data-bs-placement="top"
                       data-bs-title="Render response from template"
                       x-show="activeBin.responding.template"
-                      >Template</span
                     >
+                      Template
+                    </span>
                     <span
                       class="ms-3 badge text-bg-info"
                       data-bs-toggle="tooltip"
                       data-bs-placement="top"
                       data-bs-title="Render response from template"
                       x-show="activeBin.responding.proxy"
-                      >Proxy</span
                     >
+                      Proxy
+                    </span>
                   </div>
 
                   <!-- Template Response -->
@@ -976,15 +988,15 @@
                     <ul class="pagination">
                       <!-- First Page -->
                       <li class="page-item">
-                        <a class="page-link" href="#" @click="capturePage = 0"
-                          >&laquo;</a
-                        >
+                        <a class="page-link" href="#" @click="capturePage = 0">
+                          &laquo;
+                        </a>
                       </li>
                       <!-- Previous Page -->
                       <li class="page-item" x-show="capturePage > 1">
-                        <a class="page-link" href="#" @click="capturePage -= 2"
-                          >...</a
-                        >
+                        <a class="page-link" href="#" @click="capturePage -= 2">
+                          ...
+                        </a>
                       </li>
                       <li class="page-item" x-show="capturePage > 0">
                         <a
@@ -1018,9 +1030,9 @@
                         class="page-item"
                         x-show="capturePage < captures.pages - 2"
                       >
-                        <a class="page-link" href="#" @click="capturePage += 2"
-                          >...</a
-                        >
+                        <a class="page-link" href="#" @click="capturePage += 2">
+                          ...
+                        </a>
                       </li>
                       <!-- Last Page -->
                       <li class="page-item">
@@ -1028,8 +1040,9 @@
                           class="page-link"
                           href="#"
                           @click="capturePage = Math.max(0, captures.pages - 1)"
-                          >&raquo;</a
                         >
+                          &raquo;
+                        </a>
                       </li>
                     </ul>
                   </nav>
