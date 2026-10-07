@@ -11,7 +11,7 @@ RUN mkdir -p $HOME/.cache/zig/tmp
 RUN zig build --release=safe
 
 
-FROM alpine:latest
+FROM caddy:2.11-alpine
 
 RUN wget -O /usr/local/bin/dbmate https://github.com/amacneil/dbmate/releases/latest/download/dbmate-linux-amd64 && \
     chmod +x /usr/local/bin/dbmate
@@ -20,9 +20,12 @@ WORKDIR /app
 
 COPY --from=build /app/zig-out/bin/reqbin /usr/local/bin
 
-COPY db ./db
-COPY docker-entrypoint.sh /
+COPY files/Caddyfile /etc/caddy
+COPY dashboard ./dashboard
 
-ENV REQBIN_ADDRESS="0.0.0.0"
+COPY db ./db
+COPY files/docker-entrypoint.sh /
+
+EXPOSE 80/tcp
 
 ENTRYPOINT ["/docker-entrypoint.sh"]

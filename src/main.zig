@@ -13,8 +13,11 @@ const Config = struct {
 
     database: []const u8 = "data.db",
 
-    address: []const u8 = "127.0.0.1",
-    port: u16 = 7280,
+    api_address: []const u8 = "127.0.0.1",
+    api_port: u16 = 7281,
+
+    access_address: []const u8 = "127.0.0.1",
+    access_port: u16 = 7280,
 
     auth: ?[]const u8 = null,
     trusted_proxies: ?[]const u8 = null,
@@ -92,23 +95,34 @@ pub fn main(init: std.process.Init) !void {
     });
     defer db.deinit();
 
-    var ctx = reqbin.App.Context{
+    var api = try reqbin.Api.init(&.{
         .allocator = allocator,
         .io = io,
         .db = &db,
         .auth = config.auth,
-        .trusted_proxies = trusted_proxies,
-    };
+    }, .{
+        .address = .{ .ip = try .parse(config.api_address, config.api_port) },
+    });
+    defer api.deinit();
 
-    var app = try reqbin.App.init(&ctx, .{
-        .address = .{ .ip = try .parse(config.address, config.port) },
+    var access = try reqbin.Access.init(&.{
+        .allocator = allocator,
+        .io = io,
+        .db = &db,
+        .trusted_proxies = trusted_proxies,
+    }, .{
+        .address = .{ .ip = try .parse(config.access_address, config.access_port) },
         .request = .{
             .max_body_size = config.max_body_size,
             .max_header_count = config.max_header_count,
             .max_query_count = config.max_query_count,
         },
     });
-    defer app.deinit();
+    defer access.deinit();
 
-    try app.listen();
+    const threads = [_]std.Thread{
+        try api.listen(),
+        try access.listen(),
+    };
+    for (threads) |th| th.join();
 }

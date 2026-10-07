@@ -1,0 +1,16 @@
+:80 {
+	handle /access/* {
+		uri strip_prefix /access
+		reverse_proxy http://localhost:7280
+	}
+
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy http://localhost:7281
+	}
+
+	handle /* {
+		root * /app/dashboard
+		file_server
+	}
+}

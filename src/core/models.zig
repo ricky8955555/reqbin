@@ -308,4 +308,21 @@ pub const Bin = struct {
     methods: ?JsonField([]httpz.Method) = null,
 
     responding: JsonField(Responding) = .{ .value = .capture },
+
+    fn isValidName(name: []const u8) bool {
+        if (name.len == 0) return false;
+
+        for (name) |ch| {
+            switch (ch) {
+                'a'...'z', 'A'...'Z', '0'...'9', '-', '_' => continue,
+                else => return false,
+            }
+        }
+
+        return true;
+    }
+
+    pub fn validate(self: Bin) !void {
+        if (!isValidName(self.name)) return error.InvalidName;
+    }
 };
