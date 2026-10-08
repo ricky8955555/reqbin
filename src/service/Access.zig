@@ -130,11 +130,6 @@ fn respondError(res: *httpz.Response, status: std.http.Status) void {
     res.content_type = .TEXT;
 }
 
-pub fn renderResponse(template: Template, context: *const RenderContext, writer: *std.Io.Writer) !void {
-    const variables = context.variables();
-    try template.render(writer, variables, .{});
-}
-
 fn captureAccess(ctx: *const Context, req: *httpz.Request, res: *httpz.Response) !void {
     const params = std.mem.trimStart(u8, req.url.path, "/");
     const slash_idx = std.mem.indexOfScalar(u8, params, '/') orelse params.len;
@@ -203,8 +198,8 @@ fn captureAccess(ctx: *const Context, req: *httpz.Request, res: *httpz.Response)
             defer parsed.deinit(ctx.allocator);
 
             const context = RenderContext{ .request = req, .subpath = subpath };
-
-            renderResponse(parsed, &context, writer) catch |err| {
+            const variables = context.variables();
+            parsed.render(writer, variables, .{}) catch |err| {
                 try writer.print("Failed to render template: {any}", .{err});
                 res.setStatus(.internal_server_error);
                 res.content_type = .TEXT;
