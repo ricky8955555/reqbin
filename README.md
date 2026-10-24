@@ -23,7 +23,7 @@ docker build . -t reqbin
 
 ```shell
 touch data.db
-docker run -d --name reqbin -v $(pwd)/data.db:/app/data.db -p 7280:7280 reqbin
+docker run -d --name reqbin -v $(pwd)/data.db:/app/data.db -p 7280:80 reqbin
 ```
 
 Then access the application via <http://localhost:7280>.
