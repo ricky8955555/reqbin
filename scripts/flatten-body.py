@@ -44,7 +44,7 @@ def main() -> None:
                         assert isinstance(body_data, str), "the data of body should be a string."
                         updated_body = body_data
                     case "json":
-                        updated_body = json.dumps(body_data)
+                        updated_body = json.dumps(body_data, ensure_ascii=False)
                     case "form":
                         assert isinstance(body_data, dict), "the data of body should be an object."
                         body_data = cast(dict[str, str], body_data)

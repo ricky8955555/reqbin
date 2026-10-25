@@ -37,7 +37,7 @@ def main() -> None:
 
                 data["body"] = body.replace("\\", "\\\\").replace("{", "\\{").replace("}", "\\}")
 
-                raw = json.dumps({"template": data})
+                raw = json.dumps({"template": data}, ensure_ascii=False)
                 cursor.execute("UPDATE bins SET responding = ? WHERE id = ?", (raw, id))
 
         conn.commit()
